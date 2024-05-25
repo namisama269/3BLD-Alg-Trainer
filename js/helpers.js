@@ -210,6 +210,20 @@ function isCommutator(alg) {
     return alg.includes("/") || alg.includes(",") || alg.includes(":");
 }
 
+function getRepeatedAlg(alg) {
+    let pattern = /\(([a-zA-Z]+)\)(\d+)/;
+    let match = input.match(alg);
+
+    if (!match) {
+        return alg;
+    }
+
+    const part = match[1];
+    const times = parseInt(match[2], 10);
+
+    return ((part + " ").repeat(times)).trim();
+}
+
 function commToMoves(alg) {
     if (!isCommutator(alg)) {
         return alg;
