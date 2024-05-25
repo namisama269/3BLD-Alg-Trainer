@@ -262,3 +262,8 @@ a:visited {
     flex: 2;
     padding: 10px;
 }
+
+canvas {
+    width: 300px;
+    height: 300px;
+}

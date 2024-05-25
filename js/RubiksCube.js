@@ -5,6 +5,7 @@ var currentScramble = "";
 var algArr;//This is the array of alternatives to currentAlgorithm
 var canvas = document.getElementById("cube");
 var ctx = canvas.getContext("2d");
+let vc = new VisualCube(1200, 1200, 400, -0.523598, -0.209439, 0, 3, 0.08);
 var stickerSize = canvas.width/5;
 var currentAlgIndex = 0;
 var algorithmHistory = [];
@@ -48,19 +49,21 @@ function showPage(){
     document.getElementById("page").style.display = "block";
 }
 
-var defaults = {"useVirtual":false,
-                "hideTimer":false,
+var defaults = {"useVirtual":true,
+                "hideTimer":true,
                 "showScramble":true,
                 "realScrambles":true,
-                "randAUF":true,
-                "prescramble":true,
+                "randAUF":false,
+                "prescramble":false,
                 "goInOrder":false,
                 "goToNextCase":false,
                 "mirrorAllAlgs":false,
                 "mirrorAllAlgsAcrossS":false,
                 "colourneutrality1":"",
-                "colourneutrality2":"x2",
-                "colourneutrality3":"y",
+                "colourneutrality2":"",
+                "colourneutrality3":"",
+                // "colourneutrality2":"x2",
+                // "colourneutrality3":"y",
                 "userDefined":false,
                 "userDefinedAlgs":"",
                 "fullCN":false,
@@ -69,7 +72,7 @@ var defaults = {"useVirtual":false,
                 "useCustomColourScheme":false,
                 "customColourU":"white",
                 "customColourD":"yellow",
-                "customColourF":"green",
+                "customColourF":"lime",
                 "customColourB":"blue",
                 "customColourR":"red",
                 "customColourL":"orange",
@@ -114,7 +117,8 @@ if (document.getElementById("userDefined").checked){
 }
 
 document.getElementById("lines").addEventListener("change", function(){
-    drawCube(cube.cubestate);    
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);    
 });
 
 var useCustomColourScheme = document.getElementById("useCustomColourScheme");
@@ -124,7 +128,8 @@ useCustomColourScheme.addEventListener("click", function(){
     var algTest = algorithmHistory[historyIndex];
     updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
 
-    drawCube(cube.cubestate);    
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);    
 });
 
 var customColourU = document.getElementById("customColourU");
@@ -145,7 +150,8 @@ for (var i = 0; i < customColours.length; i++) {
         var algTest = algorithmHistory[historyIndex];
         updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
 
-        drawCube(cube.cubestate);
+        vc.cubeString = cube.toString();
+        vc.drawCube(ctx);
     });
 }
 
@@ -162,13 +168,15 @@ resetCustomColourScheme.addEventListener("click", function(){
         var algTest = algorithmHistory[historyIndex];
         updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
 
-        drawCube(cube.cubestate);                
+        vc.cubeString = cube.toString();
+        vc.drawCube(ctx);                
     }
 });
 
 setVirtualCube(document.getElementById("useVirtual").checked);
 createCheckboxes();
-drawCube(cube.cubestate);
+vc.cubeString = cube.toString();
+vc.drawCube(ctx);
 updateVisualCube("");
 
 var useVirtual = document.getElementById("useVirtual");
@@ -266,7 +274,8 @@ fullCN.addEventListener("click", function(){
 var cubeType = document.getElementById("cubeType");
 cubeType.addEventListener("change", function(){
     localStorage.setItem("cubeType", this.value);
-    drawCube(cube.cubestate);
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);
     updateVisualCube("");
 });
 
@@ -548,7 +557,8 @@ function drawCube(cubeArray) {
 
 function doAlg(algorithm){
     cube.doAlgorithm(algorithm);
-    drawCube(cube.cubestate);
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);
 
     if (timerIsRunning && cube.isSolved() && isUsingVirtualCube()){
         stopTimer();
@@ -610,7 +620,6 @@ function obfusticate(algorithm, numPremoves=3, minLength=16){
     return solution.split(" ").length >= minLength ? solution : obfusticate(algorithm, numPremoves+1, minLength);
 
 }
-
 
 function addAUFs(algArr){
 
@@ -803,7 +812,7 @@ function generateAlgTest(){
         shouldRecalculateStatistics = false;
     }
     var rawAlgStr = randomFromList(algList);
-    var rawAlgs = rawAlgStr.split("/");
+    var rawAlgs = rawAlgStr.split("!");
     rawAlgs = fixAlgorithms(rawAlgs);
 
     //Do non-randomized mirroring first. This allows a user to practise left slots, back slots, front slots, rights slots
@@ -833,7 +842,9 @@ function generateAlgTest(){
         solutions = rawAlgs;
     }
 
-    var scramble = generateAlgScramble(correctRotation(solutions[0]),set,obfusticateAlg,shouldPrescramble);
+    // pass the solutions[0] through comm to moves converter
+    // console.log(solutions[0]);
+    var scramble = generateAlgScramble(correctRotation(commToMoves(solutions[0])),set,obfusticateAlg,shouldPrescramble);
     if (set == "F3L"){
         solutions = [alg.cube.invert(scramble).replace(/2'/g, "2")];
     }
@@ -864,7 +875,8 @@ function testAlg(algTest, addToHistory=true){
     cube.resetCube();
     doAlg(algTest.preorientation);
     doAlg(algTest.scramble);
-    drawCube(cube.cubestate)
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);
 
     updateVisualCube(algTest.preorientation + algTest.scramble);
 
@@ -913,7 +925,8 @@ function reTestAlg(){
     cube.resetCube();
     doAlg(lastTest.preorientation);
     doAlg(lastTest.scramble);
-    drawCube(cube.cubestate);
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);
 
 }
 
@@ -939,7 +952,14 @@ function fixAlgorithms(algorithms){
     //for now this just removes brackets
     var i = 0;
     for (;i<algorithms.length;i++){
-        algorithms[i] = alg.cube.simplify(algorithms[i].replace(/\[|\]|\)|\(/g, ""));
+        // console.log(algorithms[i]);
+        let currAlg = algorithms[i].replace(/\[|\]|\)|\(/g, "");
+        // currAlg = commToMoves(currAlg);
+        // console.log(currAlg);
+        if (!isCommutator(currAlg)) {
+            algorithms[i] = alg.cube.simplify(currAlg);
+        }
+        
     }
     return algorithms;
     //TODO Allow commutators
@@ -991,31 +1011,31 @@ function stripLeadingHashtag(colour){
 
 function updateVisualCube(algorithm){
 
-    switch (document.getElementById("cubeType").value){
-        case "2x2":
-            var pzl = "2";
-            break;
-        case "3x3":
-            var pzl = "3";
-            break;
-    }
+    // switch (document.getElementById("cubeType").value){
+    //     case "2x2":
+    //         var pzl = "2";
+    //         break;
+    //     case "3x3":
+    //         var pzl = "3";
+    //         break;
+    // }
 
-    var view = localStorage.getItem("visualCubeView");
+    // var view = localStorage.getItem("visualCubeView");
 
-    var imgsrc = "https://www.cubing.net/api/visualcube/?fmt=svg&size=300&view=" + view + "&bg=black&pzl=" + pzl + "&alg=x2" + algorithm;
+    // var imgsrc = "https://www.cubing.net/api/visualcube/?fmt=svg&size=300&view=" + view + "&bg=black&pzl=" + pzl + "&alg=x2" + algorithm;
 
-    if (useCustomColourScheme.checked){
-        validateCustomColourScheme();
+    // if (useCustomColourScheme.checked){
+    //     validateCustomColourScheme();
 
-        imgsrc += "&sch=" + stripLeadingHashtag(customColourD.value) + "," + 
-            stripLeadingHashtag(customColourR.value) + "," +
-            stripLeadingHashtag(customColourB.value) + "," +
-            stripLeadingHashtag(customColourU.value) + "," +
-            stripLeadingHashtag(customColourL.value) + "," + 
-            stripLeadingHashtag(customColourF.value);
-    }
+    //     imgsrc += "&sch=" + stripLeadingHashtag(customColourD.value) + "," + 
+    //         stripLeadingHashtag(customColourR.value) + "," +
+    //         stripLeadingHashtag(customColourB.value) + "," +
+    //         stripLeadingHashtag(customColourU.value) + "," +
+    //         stripLeadingHashtag(customColourL.value) + "," + 
+    //         stripLeadingHashtag(customColourF.value);
+    // }
 
-    document.getElementById("visualcube").src = imgsrc;
+    // document.getElementById("visualcube").src = imgsrc;
 }
 
 function displayAlgorithm(algTest, reTest=true){    
@@ -1209,6 +1229,10 @@ function createCheckboxes(){
             currentAlgIndex = 0;
             shouldRecalculateStatistics=true; 
             //Every time a checkbox is pressed, the algset statistics should be updated.
+
+            var checkboxes = document.querySelectorAll('#cboxes input[type="checkbox"]');
+            const anyUnchecked = Array.from(checkboxes).some(checkbox => !checkbox.checked);
+            toggleAlgsetSelectAll.textContent = anyUnchecked ? 'Select All' : 'Unselect All';
         }
         checkBox.setAttribute("id", set.toLowerCase() +  subsets[i]);
 
@@ -1217,6 +1241,14 @@ function createCheckboxes(){
         label.appendChild(document.createTextNode(subsets[i]));
     }
 }
+
+var toggleAlgsetSelectAll = document.getElementById("toggleAlgsetSelectAll");
+toggleAlgsetSelectAll.addEventListener('click', () => {
+    var checkboxes = document.querySelectorAll('#cboxes input[type="checkbox"]');
+    const anyUnchecked = Array.from(checkboxes).some(checkbox => !checkbox.checked);
+    checkboxes.forEach(checkbox => checkbox.checked = anyUnchecked);
+    toggleAlgsetSelectAll.textContent = !anyUnchecked ? 'Select All' : 'Unselect All';
+});
 
 function clearSelectedAlgsets(){
     var elements = document.getElementById("algsetpicker").options;
@@ -1313,8 +1345,11 @@ function averageMovecount(algList, metric, includeAUF){
     var totalmoves = 0;
     var i = 0;
     for (; i<algList.length; i++){
-        var topAlg = algList[i].split("/")[0];
+        var topAlg = algList[i].split("!")[0];
         topAlg = topAlg.replace(/\[|\]|\)|\(/g, "");
+        // convert to moves if in comm notation
+        topAlg = commToMoves(topAlg);
+        // console.log(topAlg);
 
         var moves = alg.cube.simplify(alg.cube.expand(alg.cube.fromString(topAlg)));
         
@@ -1662,6 +1697,7 @@ function RubiksCube() {
         for(i=0;i<this.cubestate.length;i++){
             str+=sides[this.cubestate[i]-1];
         }
+        // console.log(str);
         return str;
 
     }
@@ -1669,7 +1705,8 @@ function RubiksCube() {
 
     this.test = function(alg){
         this.doAlgorithm(alg);
-        drawCube(this.cubestate);
+        vc.cubeString = cube.toString();
+        vc.drawCube(ctx);
     }
 
     this.doAlgorithm = function(alg) {
