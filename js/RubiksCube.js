@@ -1,3 +1,5 @@
+// import $ from 'jquery';
+
 import {
     now,
     connectGanCube,
@@ -1468,7 +1470,7 @@ function RubiksCube() {
     }
 
     this.doAlgorithm = function(alg) {
-        if (alg == "") return;
+        if (!alg || alg == "") return;
 
         var moveArr = alg.split(/(?=[A-Za-z])/);
         var i;
