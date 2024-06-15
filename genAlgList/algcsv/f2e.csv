@@ -1,0 +1,19 @@
+UB,UL,FR,FL,DF,DB,DR,DL,RB
+R U R' U R U2 R' U l' U' L U' L' U2 l U',,,,,,,,
+"M' U': M U M', U'",,,,,,,,
+"S U' R: E, R' U2 R'","R' F R, S + S: R' E R, U'",U' l' U' M U R U M' U' B x',,,,,,
+"U': U R' U R, S","U2 R B' R', S","l2' U': M, U R U","S U' R: E, R' U' R'","M': U, M U' R' S r",r' U' r' S r U M' U R S R' U' R,"R F R, S'",,
+"U' S R: E', R' U R'","R' F R, S + S: R E' R', U'","F' L': S', L F' L","R' E: R U' R, E","l' U: S, U' R U' R'","L: M U' M', U'","R' E' R, U' + R/E'","D' L: M U' M', U'",x' U' M' U R U M U' l'
+"R E R', U' + U R': E, R U' R","S U' R: E, R' U R'",U F2 U' R' F' u' R2' u R F,,,,,,
+"U' M' U': M, U R U","M2' U': M, U R U",,,,,,,
+"M' U M, U'","M': M U M' U M, U2",R U' r'M U M' U' R U r' U' M2' U,"U' L': U, M' U M",,,,,
+"M' U r' S' R, U'","r' U': M', U R U",R u' R E' R' U R' E R E' R',"x r2' U': M', U R U","M': U, M U' R' S' r",U' R' U' F R S R' F' R S' r' U R U M',"R' U R: S, R' F R'","u: L'/E' + u: U, L' E' L",
+"U: U2 R U' R', S'","L F' L', S' + S', U2","F' U' R: E, R' U R'","R/E + R' F R, S'","R F' R2': R U' R, E","S': U, M U M'",,,
+"M' U R S' r', U'","MR U': M', U R' U",,,,,,,
+"L' U': S, U2 R' F R","S U' R': E', R U R","lR U': M', U R' U","R E': R' U' R', E'","F' L': S', L F2' L","S U' r': E', R U R","R'/E' + R' F R, S'","S U' R': E', R U' R",x' U M' U R U M U' R' U2' x
+"R': U R U, M","R F R', S + S, R' B R'","U' M: M' U R S' r', U'","E' L: M U' M', U'","D: R F R, S'",,,,
+"U' M' U': M, U R' U","M2 U': M, U R' U","U R': S, R F R","R2 U' R': E, R U R' U' R","r U': S, U R U' R2'","U' M: M' U r' S' R, U'","u': R/E' + E: R E' R', U'","l2 U': M, U R' U",
+"S': U, M' U' M","U: U, M' U' M","M': U, M U' r S' R'","L' U: U, M' U' M",,,,,
+"U R2': S, R F R","U, S' U' S","R U R': S, R' F R'","R E R', U' + R'/E","R' F' R2: R' U' R', E","R U R' U: M, U' R2 U'",,,
+"M, U2 + U: S, R' F R","M U' M', U'","D' R U R': S, R' F R'","L': M U' M', U'","r: M', U' R' U'",,,,
+"U': S, U2 R' F R","S, U' R U' R'","U: L/E' + U: U, L E' L'","R F R': R' F R', S'","L F' L': S', L F2' L","U' M: M' U r' S R, U'","S', U' R2' U R2",,

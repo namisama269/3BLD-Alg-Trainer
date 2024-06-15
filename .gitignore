@@ -25,9 +25,9 @@ dist-ssr
 
 
 
-*.csv
+# *.csv
 *.pdf
 *.xlsx
 *.zip
-*.py
+# *.py
 misc/
