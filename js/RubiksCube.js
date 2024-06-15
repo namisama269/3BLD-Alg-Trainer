@@ -39,7 +39,7 @@ window.onbeforeunload = function () {
 }*/
 Cube.initSolver();
 
-var holdingOrientation = localStorage.getItem("holdingOrientation");
+var holdingOrientation = "";
 document.getElementById('holdingOrientation').value = holdingOrientation;
 doAlg(holdingOrientation);
 
