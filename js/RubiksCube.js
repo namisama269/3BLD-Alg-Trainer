@@ -1,6 +1,7 @@
 // import $ from 'jquery';
 
 import {
+    now,
     connectGanCube,
     //   GanCubeConnection,
     //   GanCubeEvent,
