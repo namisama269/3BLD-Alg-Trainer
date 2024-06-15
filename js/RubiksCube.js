@@ -1,11 +1,32 @@
+import $ from 'jquery';
+
+import {
+    now,
+    connectGanCube,
+    //   GanCubeConnection,
+    //   GanCubeEvent,
+    //   GanCubeMove,
+    //   MacAddressProvider,
+    makeTimeFromTimestamp,
+    cubeTimestampCalcSkew,
+    cubeTimestampLinearFit
+} from 'gan-web-bluetooth';
+
+const SOLVED_STATE = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
+
+import { VisualCube } from './visualCube.js';
+import { getKeyMaps } from './keymaps.js';
+import { KeyCombo, Listener } from './controls.js';
+
 var currentRotation = "";
-var cube = new RubiksCube();
 var currentAlgorithm = "";//After an alg gets tested for the first time, it becomes the currentAlgorithm.
 var currentScramble = "";
 var algArr;//This is the array of alternatives to currentAlgorithm
-var canvas = document.getElementById("cube");
-var ctx = canvas.getContext("2d");
-let vc = new VisualCube(1200, 1200, 400, -0.523598, -0.209439, 0, 3, 0.08);
+
+var cube = new RubiksCube();
+const canvas = document.getElementById("cube");
+const ctx = canvas.getContext("2d");
+var vc = new VisualCube(1200, 1200, 400, -0.523598, -0.209439, 0, 3, 0.08);
 var stickerSize = canvas.width/5;
 var currentAlgIndex = 0;
 var algorithmHistory = [];
@@ -18,28 +39,83 @@ window.onbeforeunload = function () {
 }*/
 Cube.initSolver();
 
-var connectGiiker = document.getElementById("connectGiiker");
-connectGiiker.addEventListener('click', async () => {
+var holdingOrientation = localStorage.getItem("holdingOrientation");
+document.getElementById('holdingOrientation').value = holdingOrientation;
+doAlg(holdingOrientation);
 
-    connectGiiker.disabled = true;
+var saveHolding = document.getElementById('saveHolding');
+saveHolding.addEventListener('click', async () => {
+    holdingOrientation = document.getElementById('holdingOrientation').value;
+    localStorage.setItem("holdingOrientation", holdingOrientation);
+    
+    cube.resetCube();
+    doAlg(holdingOrientation);
+    vc.cubeString = cube.toString();
+    vc.drawCube(ctx);
+});
+
+
+// connect smart cube ////////////////////////////////////////
+
+var conn;
+var hardwareName = 'n/a';
+
+async function handleMoveEvent(event) {
+    if (event.type == "MOVE") {
+      console.log(event.move)
+
+      if (holdingOrientation.length > 0) {
+        doAlg(alg.cube.invert(holdingOrientation) + " " + event.move + " " + holdingOrientation);
+      }
+      else {
+        doAlg(event.move)
+      }
+      vc.cubeString = cube.toString();
+      vc.drawCube(ctx);
+    }
+}
+
+function handleCubeEvent(event) {
+    console.log("GanCubeEvent", event);
+    if (event.type == "MOVE") {
+        handleMoveEvent(event);
+    } else if (event.type == "HARDWARE") {
+        hardwareName = event.hardwareName;
+        console.log(event.batteryLevel);
+    } else if (event.type == "DISCONNECT") {
+
+    }
+}
+
+const customMacAddressProvider = async (device, isFallbackCall) => {
+    if (isFallbackCall) {
+        return prompt('Unable do determine cube MAC address!\nPlease enter MAC address manually:');
+    } else {
+        return typeof device.watchAdvertisements == 'function' ? null :
+        prompt('Seems like your browser does not support Web Bluetooth watchAdvertisements() API. Enable following flag in Chrome:\n\nchrome://flags/#enable-experimental-web-platform-features\n\nor enter cube MAC address manually:');
+    }
+};
+
+var connectSmartCube = document.getElementById("connectSmartCube");
+connectSmartCube.addEventListener('click', async () => {
     try {
-        const giiker = await connect();
-        connectGiiker.textContent = 'Connected!';
-        setVirtualCube(true);
-        giiker.on('move', (move) => {
-            doAlg(move.notation);
-        });
-
-        giiker.on('disconnected', () => {
-            alert("Giiker cube disconnected");
-            connectGiiker.textContent = 'Connect Giiker Cube';
-            connectGiiker.disabled = false;
-        })
+        if (conn) {
+            conn.disconnect();
+            conn = null;
+            connectSmartCube.textContent = 'Connect Smart Cube';
+            alert(`Smart cube ${hardwareName} disconnected`);
+        } else {
+            conn = await connectGanCube(customMacAddressProvider);
+            conn.events$.subscribe(handleCubeEvent);
+            await conn.sendCubeCommand({ type: "REQUEST_HARDWARE" });
+            await conn.sendCubeCommand({ type: "REQUEST_BATTERY" });
+            // await conn.sendCubeCommand({ type: "REQUEST_FACELETS" });
+            connectSmartCube.textContent = 'Disconnect Smart Cube';
+            alert(`Smart cube ${hardwareName} connected`);
+        }
     
     } catch(e) {
-
-        connectGiiker.textContent = 'Connect Giiker Cube';
-        connectGiiker.disabled = false;
+        connectSmartCube.textContent = 'Connect Smart Cube';
     }
 });
 
@@ -67,15 +143,7 @@ var defaults = {"useVirtual":true,
                 "userDefined":false,
                 "userDefinedAlgs":"",
                 "fullCN":false,
-                "cubeType":"3x3",
                 "algsetpicker":document.getElementById("algsetpicker").options[0].value,
-                "useCustomColourScheme":false,
-                "customColourU":"white",
-                "customColourD":"yellow",
-                "customColourF":"lime",
-                "customColourB":"blue",
-                "customColourR":"red",
-                "customColourL":"orange",
                 "visualCubeView":"plan",
                 "randomizeSMirror":false,
                 "randomizeMMirror":false,
@@ -116,68 +184,10 @@ if (document.getElementById("userDefined").checked){
     document.getElementById("userDefinedAlgs").style.display = "block";
 }
 
-document.getElementById("lines").addEventListener("change", function(){
-    vc.cubeString = cube.toString();
-    vc.drawCube(ctx);    
-});
-
-var useCustomColourScheme = document.getElementById("useCustomColourScheme");
-useCustomColourScheme.addEventListener("click", function(){
-    localStorage.setItem("useCustomColourScheme", this.checked);
-
-    var algTest = algorithmHistory[historyIndex];
-    updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
-
-    vc.cubeString = cube.toString();
-    vc.drawCube(ctx);    
-});
-
-var customColourU = document.getElementById("customColourU");
-var customColourD = document.getElementById("customColourD");
-var customColourF = document.getElementById("customColourF");
-var customColourB = document.getElementById("customColourB");
-var customColourR = document.getElementById("customColourR");
-var customColourL = document.getElementById("customColourL");
-
-var customColours = [customColourU, customColourD, customColourF,
-                     customColourB, customColourR, customColourL];
-
-for (var i = 0; i < customColours.length; i++) {
-    customColours[i].addEventListener("change", function(){
-        this.value = this.value.trim();
-        localStorage.setItem(this.id, this.value);
-
-        var algTest = algorithmHistory[historyIndex];
-        updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
-
-        vc.cubeString = cube.toString();
-        vc.drawCube(ctx);
-    });
-}
-
-var resetCustomColourScheme = document.getElementById("resetCustomColourScheme");
-resetCustomColourScheme.addEventListener("click", function(){
-    if (confirm("Reset custom colour scheme?")){
-        for (var setting in defaults){
-            if (setting.indexOf( "customColour" ) > -1){
-                document.getElementById(setting).value = defaults[setting];
-                localStorage.setItem(setting, defaults[setting]);
-            }
-        }
-
-        var algTest = algorithmHistory[historyIndex];
-        updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
-
-        vc.cubeString = cube.toString();
-        vc.drawCube(ctx);                
-    }
-});
-
 setVirtualCube(document.getElementById("useVirtual").checked);
 createCheckboxes();
 vc.cubeString = cube.toString();
 vc.drawCube(ctx);
-updateVisualCube("");
 
 var useVirtual = document.getElementById("useVirtual");
 useVirtual.addEventListener("click", function(){
@@ -202,7 +212,6 @@ visualCube.addEventListener("click", function(){
     var newView = currentView == ""? "plan": "";
     localStorage.setItem("visualCubeView", newView);
     var algTest = algorithmHistory[historyIndex];
-    updateVisualCube(algTest ? algTest.preorientation+algTest.scramble : "");
 });
 
 
@@ -271,14 +280,6 @@ fullCN.addEventListener("click", function(){
     localStorage.setItem("fullCN", this.checked);
 });
 
-var cubeType = document.getElementById("cubeType");
-cubeType.addEventListener("change", function(){
-    localStorage.setItem("cubeType", this.value);
-    vc.cubeString = cube.toString();
-    vc.drawCube(ctx);
-    updateVisualCube("");
-});
-
 var algsetpicker = document.getElementById("algsetpicker");
 algsetpicker.addEventListener("change", function(){
     createCheckboxes();
@@ -308,7 +309,7 @@ deleteLast.addEventListener("click", function(){
 var addSelected = document.getElementById("addSelected");
 addSelected.addEventListener("click", function(){
 
-    algList = createAlgList(true);
+    var algList = createAlgList(true);
     for (let i = 0; i < algList.length; i++){
         algList[i] = algList[i].split("/")[0]
     }
@@ -346,214 +347,6 @@ try{ // only for mobile
 } catch (error) {
 
 }
-function fillSticker(x, y, colour) {
-    ctx.fillStyle = colour;
-    ctx.fillRect(stickerSize * x, stickerSize * y, stickerSize, stickerSize);
-}
-
-function fillWithIndex(x, y, face, index, cubeArray, shouldBeCleared = false) {
-    index--;
-    switch (face) {
-        case "u":
-            break;
-        case "r":
-            index += 9;
-            break;
-        case "f":
-            index += 18;
-            break;
-        case "d":
-            index += 27;
-            break;
-        case "l":
-            index += 36;
-            break;
-        case "b":
-            index += 45;
-            break;
-    }
-
-    var sticker = cubeArray[index];
-    var colour;
-    switch (sticker) {
-        case 1:
-            if (useCustomColourScheme.checked){
-                colour = customColourU.value;
-            } else {
-                colour = defaults["customColourU"];
-            }
-            break;
-        case 2:
-            if (useCustomColourScheme.checked){
-                colour = customColourR.value;
-            } else {
-                colour = defaults["customColourR"];
-            }
-            break;
-        case 3:
-            if (useCustomColourScheme.checked){
-                colour = customColourF.value;
-            } else {
-                colour = defaults["customColourF"];
-            }
-            break;
-        case 4:
-            if (useCustomColourScheme.checked){
-                colour = customColourD.value;
-            } else {
-                colour = defaults["customColourD"];
-            }
-            break;
-        case 5:
-            if (useCustomColourScheme.checked){
-                colour = customColourL.value;
-            } else {
-                colour = defaults["customColourL"];
-            }
-            break;
-        case 6:
-            if (useCustomColourScheme.checked){
-                colour = customColourB.value;
-            } else {
-                colour = defaults["customColourB"];
-            }
-            break;
-    }
-    if(shouldBeCleared){
-        colour = "black";
-    }
-    fillSticker(x, y, colour);
-}
-function drawCube(cubeArray) {
-    //Just Draw Corners when Doing 2x2
-    //TODO: Is this a good Idea? Is there a 2x2 draw thing already available for
-    //RubiksCube.js?
-    if(document.getElementById("cubeType").value == "2x2"){
-
-        //Clear not used Elements
-        fillWithIndex(0, 0, "l", 1, cubeArray,true);
-        fillWithIndex(1, 0, "u", 1, cubeArray,true);
-        fillWithIndex(2, 0, "u", 2, cubeArray,true);
-        fillWithIndex(3, 0, "u", 3, cubeArray,true);
-        fillWithIndex(4, 0, "r", 3, cubeArray,true);
-
-        fillWithIndex(0, 1, "l", 2, cubeArray,true);
-        fillWithIndex(1, 1, "u", 4, cubeArray,true);
-        fillWithIndex(2, 1, "u", 5, cubeArray,true);
-        fillWithIndex(3, 1, "u", 6, cubeArray,true);
-        fillWithIndex(4, 1, "r", 2, cubeArray,true);
-
-        fillWithIndex(0, 2, "l", 3, cubeArray,true);
-        fillWithIndex(1, 2, "u", 7, cubeArray,true);
-        fillWithIndex(2, 2, "u", 8, cubeArray,true);
-        fillWithIndex(3, 2, "u", 9, cubeArray,true);
-        fillWithIndex(4, 2, "r", 1, cubeArray,true);
-
-        fillWithIndex(0, 3, "l", 3, cubeArray,true);
-        fillWithIndex(1, 3, "f", 1, cubeArray,true);
-        fillWithIndex(2, 3, "f", 2, cubeArray,true);
-        fillWithIndex(3, 3, "f", 3, cubeArray,true);
-        fillWithIndex(4, 3, "r", 1, cubeArray,true);
-
-        fillWithIndex(0, 4, "l", 6, cubeArray,true);
-        fillWithIndex(1, 4, "f", 4, cubeArray,true);
-        fillWithIndex(2, 4, "f", 5, cubeArray,true);
-        fillWithIndex(3, 4, "f", 6, cubeArray,true);
-        fillWithIndex(4, 4, "r", 4, cubeArray,true);
-
-        fillWithIndex(0, 5, "l", 9, cubeArray,true);
-        fillWithIndex(1, 5, "f", 7, cubeArray,true);
-        fillWithIndex(2, 5, "f", 8, cubeArray,true);
-        fillWithIndex(3, 5, "f", 9, cubeArray,true);
-        fillWithIndex(4, 5, "r", 7, cubeArray,true);
-
-        //Draw 2x2
-        fillWithIndex(0, 2, "l", 1, cubeArray);
-        fillWithIndex(1, 2, "u", 1, cubeArray);
-        fillWithIndex(2, 2, "u", 3, cubeArray);
-        fillWithIndex(3, 2, "r", 3, cubeArray);
-
-        fillWithIndex(0, 3, "l", 3, cubeArray);
-        fillWithIndex(1, 3, "u", 7, cubeArray);
-        fillWithIndex(2, 3, "u", 9, cubeArray);
-        fillWithIndex(3, 3, "r", 1, cubeArray);
-
-        fillWithIndex(0, 4, "l", 3, cubeArray);
-        fillWithIndex(1, 4, "f", 1, cubeArray);
-        fillWithIndex(2, 4, "f", 3, cubeArray);
-        fillWithIndex(3, 4, "r", 1, cubeArray);
-
-        fillWithIndex(0, 5, "l", 9, cubeArray);
-        fillWithIndex(1, 5, "f", 7, cubeArray);
-        fillWithIndex(2, 5, "f", 9, cubeArray);
-        fillWithIndex(3, 5, "r", 7, cubeArray);
-
-    }else{
-        fillWithIndex(0, 0, "l", 1, cubeArray);
-        fillWithIndex(1, 0, "u", 1, cubeArray);
-        fillWithIndex(2, 0, "u", 2, cubeArray);
-        fillWithIndex(3, 0, "u", 3, cubeArray);
-        fillWithIndex(4, 0, "r", 3, cubeArray);
-
-        fillWithIndex(0, 1, "l", 2, cubeArray);
-        fillWithIndex(1, 1, "u", 4, cubeArray);
-        fillWithIndex(2, 1, "u", 5, cubeArray);
-        fillWithIndex(3, 1, "u", 6, cubeArray);
-        fillWithIndex(4, 1, "r", 2, cubeArray);
-
-        fillWithIndex(0, 2, "l", 3, cubeArray);
-        fillWithIndex(1, 2, "u", 7, cubeArray);
-        fillWithIndex(2, 2, "u", 8, cubeArray);
-        fillWithIndex(3, 2, "u", 9, cubeArray);
-        fillWithIndex(4, 2, "r", 1, cubeArray);
-
-        fillWithIndex(0, 3, "l", 3, cubeArray);
-        fillWithIndex(1, 3, "f", 1, cubeArray);
-        fillWithIndex(2, 3, "f", 2, cubeArray);
-        fillWithIndex(3, 3, "f", 3, cubeArray);
-        fillWithIndex(4, 3, "r", 1, cubeArray);
-
-        fillWithIndex(0, 4, "l", 6, cubeArray);
-        fillWithIndex(1, 4, "f", 4, cubeArray);
-        fillWithIndex(2, 4, "f", 5, cubeArray);
-        fillWithIndex(3, 4, "f", 6, cubeArray);
-        fillWithIndex(4, 4, "r", 4, cubeArray);
-
-        fillWithIndex(0, 5, "l", 9, cubeArray);
-        fillWithIndex(1, 5, "f", 7, cubeArray);
-        fillWithIndex(2, 5, "f", 8, cubeArray);
-        fillWithIndex(3, 5, "f", 9, cubeArray);
-        fillWithIndex(4, 5, "r", 7, cubeArray);
-
-        let lineValue = document.getElementById("lines").value;
-        if (lineValue === "none") return;
-        // Draw outlines
-        if (lineValue === "thin-gray") {
-            ctx.lineWidth = 0.5;
-            ctx.strokeStyle = "#ccc";
-        } else if (lineValue === "thick-gray") {
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = "#ccc";
-        } else if (lineValue === "thin-black") {
-            ctx.lineWidth = 0.5;
-            ctx.strokeStyle = "#000";
-        } else if (lineValue === "thick-black") {
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = "#000";
-        }
-        ctx.strokeRect(-1, -1, 1 + stickerSize * 2, 1 + stickerSize);
-        ctx.strokeRect(-1, stickerSize * 2, 1 + stickerSize * 2, stickerSize * 2);
-        ctx.strokeRect(-1, stickerSize * 5, 1 + stickerSize * 2, 1 + stickerSize);
-
-        ctx.strokeRect(stickerSize * 2, stickerSize, stickerSize, stickerSize);
-        ctx.strokeRect(stickerSize * 2, stickerSize * 4, stickerSize, stickerSize);
-
-        ctx.strokeRect(stickerSize * 3, -1, stickerSize * 2 + 1, 1 + stickerSize);
-        ctx.strokeRect(stickerSize * 3, stickerSize * 2, stickerSize * 2 + 1, stickerSize * 2);
-        ctx.strokeRect(stickerSize * 3, stickerSize * 5, stickerSize * 2 + 1, 1 + stickerSize);
-    }
-}
-
 
 function doAlg(algorithm){
     cube.doAlgorithm(algorithm);
@@ -615,7 +408,7 @@ function obfusticate(algorithm, numPremoves=3, minLength=16){
     var premoves = getPremoves(numPremoves);
     var rc = new RubiksCube();
     rc.doAlgorithm(alg.cube.invert(premoves) + algorithm);
-    orient = alg.cube.invert(rc.wcaOrient());
+    var orient = alg.cube.invert(rc.wcaOrient());
     var solution = alg.cube.simplify(premoves + (alg.cube.invert(rc.solution())) + orient).replace(/2'/g, "2");
     return solution.split(" ").length >= minLength ? solution : obfusticate(algorithm, numPremoves+1, minLength);
 
@@ -736,8 +529,6 @@ function generatePreScramble(raw_alg, generator, times, obfusticateAlg, premoves
 
 }
 function generateOrientation(){
-
-
     var cn1 = document.getElementById("colourneutrality1").value;
     if (document.getElementById("fullCN").checked){
         var firstRotation = ["", "x", "x'", "x2", "y", "y'"]
@@ -776,7 +567,7 @@ function generateOrientation(){
 }
 
 class AlgTest {
-    constructor(rawAlgs, scramble, solutions, preorientation, solveTime, time, set, visualCubeView, cubeType, orientRandPart) {
+    constructor(rawAlgs, scramble, solutions, preorientation, solveTime, time, set, visualCubeView, orientRandPart) {
         this.rawAlgs = rawAlgs;
         this.scramble = scramble;
         this.solutions = solutions;
@@ -785,7 +576,6 @@ class AlgTest {
         this.time = time;
         this.set = set;
         this.visualCubeView = visualCubeView;
-        this.cubeType = cubeType;
         this.orientRandPart = orientRandPart;
     }
 }
@@ -851,13 +641,11 @@ function generateAlgTest(){
     var [preorientation, orientRandPart] = generateOrientation();
     orientRandPart = alg.cube.simplify(orientRandPart);
 
-    var cubeType = document.getElementById("cubeType");
-
     var solveTime = null;
     var time = Date.now();
     var visualCubeView = "plan";
 
-    var algTest = new AlgTest(rawAlgs, scramble, solutions, preorientation, solveTime, time, set, visualCubeView, cubeType, orientRandPart);
+    var algTest = new AlgTest(rawAlgs, scramble, solutions, preorientation, solveTime, time, set, visualCubeView, orientRandPart);
     return algTest;
 }
 function testAlg(algTest, addToHistory=true){
@@ -873,12 +661,11 @@ function testAlg(algTest, addToHistory=true){
     document.getElementById("algdisp").innerHTML = "";
 
     cube.resetCube();
+    doAlg(holdingOrientation);
     doAlg(algTest.preorientation);
     doAlg(algTest.scramble);
     vc.cubeString = cube.toString();
     vc.drawCube(ctx);
-
-    updateVisualCube(algTest.preorientation + algTest.scramble);
 
     if (addToHistory){
         algorithmHistory.push(algTest);
@@ -923,6 +710,7 @@ function reTestAlg(){
         return;
     }
     cube.resetCube();
+    doAlg(holdingOrientation);
     doAlg(lastTest.preorientation);
     doAlg(lastTest.scramble);
     vc.cubeString = cube.toString();
@@ -940,8 +728,8 @@ function updateTrainer(scramble, solutions, algorithm, timer){
 
     if (algorithm!=null){
         cube.resetCube();
+        doAlg(holdingOrientation);
         doAlg(algorithm);
-        updateVisualCube(algorithm);
     }
 
     if (timer!=null){
@@ -981,26 +769,6 @@ function validTextColour(stringToTest) {
     }
 }
 
-function validateCustomColourScheme(){
-    var invalidColours = [];
-
-    for (var i = 0; i < customColours.length; i++) {
-        if (!validTextColour(customColours[i].value)) {
-            invalidColours.push(customColours[i].value);
-            customColours[i].value = defaults[customColours[i].id];
-            localStorage.setItem(customColours[i].id, customColours[i].value);
-        }
-    }
-
-    if (invalidColours.length > 0) {
-        alert("The following custom colours are not supported and were reset to default:\n" + 
-              invalidColours.join(", ") + "\n\n" +
-              "Either use #RRGGBB, or one of the following colour names:\n" +
-              "black, dgrey, grey, silver, white, yellow, red, orange, blue, green, purple, pink."
-             );
-    }
-}
-
 function stripLeadingHashtag(colour){
     if (colour[0] == '#'){
         return colour.substring(1);
@@ -1009,37 +777,8 @@ function stripLeadingHashtag(colour){
     return colour;
 }
 
-function updateVisualCube(algorithm){
-
-    // switch (document.getElementById("cubeType").value){
-    //     case "2x2":
-    //         var pzl = "2";
-    //         break;
-    //     case "3x3":
-    //         var pzl = "3";
-    //         break;
-    // }
-
-    // var view = localStorage.getItem("visualCubeView");
-
-    // var imgsrc = "https://www.cubing.net/api/visualcube/?fmt=svg&size=300&view=" + view + "&bg=black&pzl=" + pzl + "&alg=x2" + algorithm;
-
-    // if (useCustomColourScheme.checked){
-    //     validateCustomColourScheme();
-
-    //     imgsrc += "&sch=" + stripLeadingHashtag(customColourD.value) + "," + 
-    //         stripLeadingHashtag(customColourR.value) + "," +
-    //         stripLeadingHashtag(customColourB.value) + "," +
-    //         stripLeadingHashtag(customColourU.value) + "," +
-    //         stripLeadingHashtag(customColourL.value) + "," + 
-    //         stripLeadingHashtag(customColourF.value);
-    // }
-
-    // document.getElementById("visualcube").src = imgsrc;
-}
 
 function displayAlgorithm(algTest, reTest=true){    
-
     //If reTest is true, the scramble will also be setup on the virtual cube
     if (reTest){
         reTestAlg();
@@ -1090,8 +829,8 @@ function randomFromList(set){
         return set[currentAlgIndex++%set.length];
     }   
 
-    size = set.length;
-    rand = Math.floor(Math.random()*size);
+    var size = set.length;
+    var rand = Math.floor(Math.random()*size);
 
     return set[rand];
 
@@ -1269,16 +1008,24 @@ function findMistakesInUserAlgs(userAlgs){
         }
         userAlgs[i] = userAlgs[i].replace(/[\u2018\u0060\u2019\u00B4]/g, "'"); 
         //replace astrophe like characters with '
-        try {
-            alg.cube.simplify(userAlgs[i]);
-            if (userAlgs[i].trim()!="" ){
-                newList.push(userAlgs[i]);
-                newListDisplay.push(userAlgs[i]);
+        if (!isCommutator(userAlgs[i])) {
+            try {
+                alg.cube.simplify(userAlgs[i]);
+                if (userAlgs[i].trim()!="" ){
+                    newList.push(userAlgs[i]);
+                    newListDisplay.push(userAlgs[i]);
+                }
+            }
+            catch(err){
+                errorMessage += "\"" + userAlgs[i] + "\"" + " is an invalid alg and has been removed\n";
             }
         }
-        catch(err){
-            errorMessage += "\"" + userAlgs[i] + "\"" + " is an invalid alg and has been removed\n";
+        else {
+            // TODO: check valid comms
+            newList.push(userAlgs[i]);
+            newListDisplay.push(userAlgs[i]);
         }
+        
     }
 
     if (errorMessage!=""){
@@ -1416,7 +1163,25 @@ function isUsingVirtualCube(){
 
 var listener = new Listener();
 
-lastKeyMap = null;
+var lastKeyMap = null;
+
+var historyIndex;
+
+export function nextScramble(displayReady=true){
+    document.getElementById("scramble").style.color = "white";
+    stopTimer(false);
+    if (displayReady){
+        document.getElementById("timer").innerHTML = 'Ready';
+    };
+    if (isUsingVirtualCube() ){
+        testAlg(generateAlgTest());
+        startTimer();
+    }
+    else {
+        testAlg(generateAlgTest());
+    }
+    historyIndex = algorithmHistory.length - 1;
+}
 
 
 function handleLeftButton() {
@@ -1491,31 +1256,15 @@ function updateControls() {
 setInterval(updateControls, 300);
 
 
-function nextScramble(displayReady=true){
-    document.getElementById("scramble").style.color = "white";
-    stopTimer(false);
-    if (displayReady){
-        document.getElementById("timer").innerHTML = 'Ready';
-    };
-    if (isUsingVirtualCube() ){
-        testAlg(generateAlgTest());
-        startTimer();
-    }
-    else {
-        testAlg(generateAlgTest());
-    }
-    historyIndex = algorithmHistory.length - 1;
-}
-
-var historyIndex;
-
-
 function release(event) {
     if (event.key == " " || event.type=="touchend") { //space
-
+        if (document.activeElement.type == "text"){
+            return;
+        }
         if (document.activeElement.type == "textarea"){
             return;
         }
+
         document.getElementById("timer").style.color = "white"; //Timer should never be any color other than white when space is not pressed down
         if (!isUsingVirtualCube()){
             if (document.getElementById("algdisp").innerHTML == ""){
@@ -1541,11 +1290,16 @@ document.getElementById("touchStartArea").addEventListener("touchend", release);
 
 var doNothingNextTimeSpaceIsPressed = true;
 function press(event) { //Stops the screen from scrolling down when you press space
-
+    
     if (event.key == " " || event.type == "touchstart") { //space
+        if (document.activeElement.type == "text"){
+            return;
+        }
+
         if (document.activeElement.type == "textarea"){
             return;
         }
+
         event.preventDefault();
         if (!event.repeat){
             if (isUsingVirtualCube()){
@@ -1627,7 +1381,13 @@ class SolveTime {
 }
 
 
+const nextScrambleButton = document.querySelector('button[name="nextScrambleButton"]');
+if (nextScrambleButton)
+    nextScrambleButton.addEventListener('click', nextScramble);
 
+const showSolutionButton = document.querySelector('button[name="showSolutionButton"]');
+if (showSolutionButton)
+    showSolutionButton.addEventListener('click', displayAlgorithmForPreviousTest);
 
 
 
@@ -1803,7 +1563,7 @@ function RubiksCube() {
 
     this.solveNoRotate = function(){
         //Center sticker indexes: 4, 13, 22, 31, 40, 49
-        cubestate = this.cubestate;
+        var cubestate = this.cubestate;
         this.cubestate = [cubestate[4],cubestate[4],cubestate[4],cubestate[4],cubestate[4],cubestate[4],cubestate[4],cubestate[4],cubestate[4],
                           cubestate[13],cubestate[13],cubestate[13],cubestate[13],cubestate[13],cubestate[13],cubestate[13],cubestate[13],cubestate[13],
                           cubestate[22],cubestate[22],cubestate[22],cubestate[22],cubestate[22],cubestate[22],cubestate[22],cubestate[22],cubestate[22],
@@ -1815,7 +1575,7 @@ function RubiksCube() {
     this.doU = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[6], cubestate[3], cubestate[0], cubestate[7], cubestate[4], cubestate[1], cubestate[8], cubestate[5], cubestate[2], cubestate[45], cubestate[46], cubestate[47], cubestate[12], cubestate[13], cubestate[14], cubestate[15], cubestate[16], cubestate[17], cubestate[9], cubestate[10], cubestate[11], cubestate[21], cubestate[22], cubestate[23], cubestate[24], cubestate[25], cubestate[26], cubestate[27], cubestate[28], cubestate[29], cubestate[30], cubestate[31], cubestate[32], cubestate[33], cubestate[34], cubestate[35], cubestate[18], cubestate[19], cubestate[20], cubestate[39], cubestate[40], cubestate[41], cubestate[42], cubestate[43], cubestate[44], cubestate[36], cubestate[37], cubestate[38], cubestate[48], cubestate[49], cubestate[50], cubestate[51], cubestate[52], cubestate[53]];
         }
 
@@ -1824,7 +1584,7 @@ function RubiksCube() {
     this.doR = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
 
             this.cubestate = [cubestate[0], cubestate[1], cubestate[20], cubestate[3], cubestate[4], cubestate[23], cubestate[6], cubestate[7], cubestate[26], cubestate[15], cubestate[12], cubestate[9], cubestate[16], cubestate[13], cubestate[10], cubestate[17], cubestate[14], cubestate[11], cubestate[18], cubestate[19], cubestate[29], cubestate[21], cubestate[22], cubestate[32], cubestate[24], cubestate[25], cubestate[35], cubestate[27], cubestate[28], cubestate[51], cubestate[30], cubestate[31], cubestate[48], cubestate[33], cubestate[34], cubestate[45], cubestate[36], cubestate[37], cubestate[38], cubestate[39], cubestate[40], cubestate[41], cubestate[42], cubestate[43], cubestate[44], cubestate[8], cubestate[46], cubestate[47], cubestate[5], cubestate[49], cubestate[50], cubestate[2], cubestate[52], cubestate[53]]
         }
@@ -1834,7 +1594,7 @@ function RubiksCube() {
     this.doF = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[0], cubestate[1], cubestate[2], cubestate[3], cubestate[4], cubestate[5], cubestate[44], cubestate[41], cubestate[38], cubestate[6], cubestate[10], cubestate[11], cubestate[7], cubestate[13], cubestate[14], cubestate[8], cubestate[16], cubestate[17], cubestate[24], cubestate[21], cubestate[18], cubestate[25], cubestate[22], cubestate[19], cubestate[26], cubestate[23], cubestate[20], cubestate[15], cubestate[12], cubestate[9], cubestate[30], cubestate[31], cubestate[32], cubestate[33], cubestate[34], cubestate[35], cubestate[36], cubestate[37], cubestate[27], cubestate[39], cubestate[40], cubestate[28], cubestate[42], cubestate[43], cubestate[29], cubestate[45], cubestate[46], cubestate[47], cubestate[48], cubestate[49], cubestate[50], cubestate[51], cubestate[52], cubestate[53]];
         }
 
@@ -1843,7 +1603,7 @@ function RubiksCube() {
     this.doD = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[0], cubestate[1], cubestate[2], cubestate[3], cubestate[4], cubestate[5], cubestate[6], cubestate[7], cubestate[8], cubestate[9], cubestate[10], cubestate[11], cubestate[12], cubestate[13], cubestate[14], cubestate[24], cubestate[25], cubestate[26], cubestate[18], cubestate[19], cubestate[20], cubestate[21], cubestate[22], cubestate[23], cubestate[42], cubestate[43], cubestate[44], cubestate[33], cubestate[30], cubestate[27], cubestate[34], cubestate[31], cubestate[28], cubestate[35], cubestate[32], cubestate[29], cubestate[36], cubestate[37], cubestate[38], cubestate[39], cubestate[40], cubestate[41], cubestate[51], cubestate[52], cubestate[53], cubestate[45], cubestate[46], cubestate[47], cubestate[48], cubestate[49], cubestate[50], cubestate[15], cubestate[16], cubestate[17]];
         }
 
@@ -1852,7 +1612,7 @@ function RubiksCube() {
     this.doL = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[53], cubestate[1], cubestate[2], cubestate[50], cubestate[4], cubestate[5], cubestate[47], cubestate[7], cubestate[8], cubestate[9], cubestate[10], cubestate[11], cubestate[12], cubestate[13], cubestate[14], cubestate[15], cubestate[16], cubestate[17], cubestate[0], cubestate[19], cubestate[20], cubestate[3], cubestate[22], cubestate[23], cubestate[6], cubestate[25], cubestate[26], cubestate[18], cubestate[28], cubestate[29], cubestate[21], cubestate[31], cubestate[32], cubestate[24], cubestate[34], cubestate[35], cubestate[42], cubestate[39], cubestate[36], cubestate[43], cubestate[40], cubestate[37], cubestate[44], cubestate[41], cubestate[38], cubestate[45], cubestate[46], cubestate[33], cubestate[48], cubestate[49], cubestate[30], cubestate[51], cubestate[52], cubestate[27]];
         }
 
@@ -1861,7 +1621,7 @@ function RubiksCube() {
     this.doB = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[11], cubestate[14], cubestate[17], cubestate[3], cubestate[4], cubestate[5], cubestate[6], cubestate[7], cubestate[8], cubestate[9], cubestate[10], cubestate[35], cubestate[12], cubestate[13], cubestate[34], cubestate[15], cubestate[16], cubestate[33], cubestate[18], cubestate[19], cubestate[20], cubestate[21], cubestate[22], cubestate[23], cubestate[24], cubestate[25], cubestate[26], cubestate[27], cubestate[28], cubestate[29], cubestate[30], cubestate[31], cubestate[32], cubestate[36], cubestate[39], cubestate[42], cubestate[2], cubestate[37], cubestate[38], cubestate[1], cubestate[40], cubestate[41], cubestate[0], cubestate[43], cubestate[44], cubestate[51], cubestate[48], cubestate[45], cubestate[52], cubestate[49], cubestate[46], cubestate[53], cubestate[50], cubestate[47]];
         }
 
@@ -1870,7 +1630,7 @@ function RubiksCube() {
     this.doE = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[0], cubestate[1], cubestate[2], cubestate[3], cubestate[4], cubestate[5], cubestate[6], cubestate[7], cubestate[8], cubestate[9], cubestate[10], cubestate[11], cubestate[21], cubestate[22], cubestate[23], cubestate[15], cubestate[16], cubestate[17], cubestate[18], cubestate[19], cubestate[20], cubestate[39], cubestate[40], cubestate[41], cubestate[24], cubestate[25], cubestate[26], cubestate[27], cubestate[28], cubestate[29], cubestate[30], cubestate[31], cubestate[32], cubestate[33], cubestate[34], cubestate[35], cubestate[36], cubestate[37], cubestate[38], cubestate[48], cubestate[49], cubestate[50], cubestate[42], cubestate[43], cubestate[44], cubestate[45], cubestate[46], cubestate[47], cubestate[12], cubestate[13], cubestate[14], cubestate[51], cubestate[52], cubestate[53]];
         }
 
@@ -1879,7 +1639,7 @@ function RubiksCube() {
     this.doM = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[0], cubestate[52], cubestate[2], cubestate[3], cubestate[49], cubestate[5], cubestate[6], cubestate[46], cubestate[8], cubestate[9], cubestate[10], cubestate[11], cubestate[12], cubestate[13], cubestate[14], cubestate[15], cubestate[16], cubestate[17], cubestate[18], cubestate[1], cubestate[20], cubestate[21], cubestate[4], cubestate[23], cubestate[24], cubestate[7], cubestate[26], cubestate[27], cubestate[19], cubestate[29], cubestate[30], cubestate[22], cubestate[32], cubestate[33], cubestate[25], cubestate[35], cubestate[36], cubestate[37], cubestate[38], cubestate[39], cubestate[40], cubestate[41], cubestate[42], cubestate[43], cubestate[44], cubestate[45], cubestate[34], cubestate[47], cubestate[48], cubestate[31], cubestate[50], cubestate[51], cubestate[28], cubestate[53]];
         }
 
@@ -1888,7 +1648,7 @@ function RubiksCube() {
     this.doS = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.cubestate = [cubestate[0], cubestate[1], cubestate[2], cubestate[43], cubestate[40], cubestate[37], cubestate[6], cubestate[7], cubestate[8], cubestate[9], cubestate[3], cubestate[11], cubestate[12], cubestate[4], cubestate[14], cubestate[15], cubestate[5], cubestate[17], cubestate[18], cubestate[19], cubestate[20], cubestate[21], cubestate[22], cubestate[23], cubestate[24], cubestate[25], cubestate[26], cubestate[27], cubestate[28], cubestate[29], cubestate[16], cubestate[13], cubestate[10], cubestate[33], cubestate[34], cubestate[35], cubestate[36], cubestate[30], cubestate[38], cubestate[39], cubestate[31], cubestate[41], cubestate[42], cubestate[32], cubestate[44], cubestate[45], cubestate[46], cubestate[47], cubestate[48], cubestate[49], cubestate[50], cubestate[51], cubestate[52], cubestate[53]];
         }
 
@@ -1897,7 +1657,7 @@ function RubiksCube() {
     this.doX = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doR(1);
             this.doM(3);
             this.doL(3);
@@ -1907,7 +1667,7 @@ function RubiksCube() {
     this.doY = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
 
             this.doU(1);
             this.doE(3);
@@ -1918,7 +1678,7 @@ function RubiksCube() {
     this.doZ = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
 
             this.doF(1);
             this.doS(1);
@@ -1929,7 +1689,7 @@ function RubiksCube() {
     this.doUw = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doE(3);
             this.doU(1);
 
@@ -1940,7 +1700,7 @@ function RubiksCube() {
     this.doRw = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doM(3);
             this.doR(1);
         }
@@ -1950,7 +1710,7 @@ function RubiksCube() {
     this.doFw = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doS(1);
             this.doF(1);
         }
@@ -1960,7 +1720,7 @@ function RubiksCube() {
     this.doDw = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doE(1);
             this.doD(1);
         }
@@ -1970,7 +1730,7 @@ function RubiksCube() {
     this.doLw = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doM(1);
             this.doL(1);
         }
@@ -1980,10 +1740,11 @@ function RubiksCube() {
     this.doBw = function(times) {
         var i;
         for (i = 0; i < times; i++) {
-            cubestate = this.cubestate;
+            var cubestate = this.cubestate;
             this.doS(3);
             this.doB(1);
         }
 
     }
 }
+

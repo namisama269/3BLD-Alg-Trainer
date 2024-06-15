@@ -1,0 +1,23 @@
+{
+  "name": "-alg-trainer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vite": "^5.2.0"
+  },
+  "dependencies": {
+    "@types/jquery": "^3.5.29",
+    "@types/web-bluetooth": "^0.0.20",
+    "cubing": "^0.47.1",
+    "gan-web-bluetooth": "^2.2.2",
+    "jquery": "^3.7.1",
+    "rxjs": "^7.8.1"
+  }
+}

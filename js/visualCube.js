@@ -8,7 +8,7 @@ const BLUE = "#2055FF";
 
 const CUBE_COLOR = BLACK;
 
-class VisualCube {
+export class VisualCube {
     constructor(width, height, scale, thetaX, thetaY, thetaZ, cubeSize, gapSize) {
         this.width = width;
         this.height = height;
@@ -39,12 +39,12 @@ class VisualCube {
             [-1, 1, -1]
         ];
         this.stickerColors = {
-            "U": YELLOW,
-            "D": WHITE,
-            "R": GREEN,
-            "L": BLUE,
-            "F": RED,
-            "B": ORANGE,
+            "U": WHITE,
+            "D": YELLOW,
+            "R": RED,
+            "L": ORANGE,
+            "F": GREEN,
+            "B": BLUE,
             "z": BLACK,
             "x": "#555555",
         }
@@ -109,21 +109,21 @@ class VisualCube {
 
     drawCube(ctx) {
         // update colors
-        if (useCustomColourScheme.checked){
-            this.stickerColors["U"] = customColourU.value;
-            this.stickerColors["L"] = customColourL.value;
-            this.stickerColors["F"] = customColourF.value;
-            this.stickerColors["R"] = customColourR.value;
-            this.stickerColors["B"] = customColourB.value;
-            this.stickerColors["D"] = customColourD.value;
-        } else {
-            this.stickerColors["U"] = defaults["customColourU"];
-            this.stickerColors["L"] = defaults["customColourL"];
-            this.stickerColors["F"] = defaults["customColourF"];
-            this.stickerColors["R"] = defaults["customColourR"];
-            this.stickerColors["B"] = defaults["customColourB"];
-            this.stickerColors["D"] = defaults["customColourD"];
-        }
+        // if (useCustomColourScheme.checked){
+        //     this.stickerColors["U"] = customColourU.value;
+        //     this.stickerColors["L"] = customColourL.value;
+        //     this.stickerColors["F"] = customColourF.value;
+        //     this.stickerColors["R"] = customColourR.value;
+        //     this.stickerColors["B"] = customColourB.value;
+        //     this.stickerColors["D"] = customColourD.value;
+        // } else {
+        //     this.stickerColors["U"] = defaults["customColourU"];
+        //     this.stickerColors["L"] = defaults["customColourL"];
+        //     this.stickerColors["F"] = defaults["customColourF"];
+        //     this.stickerColors["R"] = defaults["customColourR"];
+        //     this.stickerColors["B"] = defaults["customColourB"];
+        //     this.stickerColors["D"] = defaults["customColourD"];
+        // }
 
         ctx.imageSmoothingEnabled = true;
 

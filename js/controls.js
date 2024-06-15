@@ -1,4 +1,4 @@
-class KeyCombo {
+export class KeyCombo {
     constructor(code, modifiers={}) {
         this.shift = modifiers.shift || false;
         this.ctrl = modifiers.ctrl || false;
@@ -38,7 +38,7 @@ function keyEventToKeyCombo(evt, force) {
     return new KeyCombo(code, {"shift": evt.shiftKey, "alt": evt.altKey, "ctrl": evt.ctrlKey});
 }
 
-class Listener {
+export class Listener {
     constructor() {
         let self = this;
         this.combos = []; // [[combo, fn]]
