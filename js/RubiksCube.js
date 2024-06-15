@@ -1,16 +1,16 @@
 // import $ from 'jquery';
 
-import {
-    now,
-    connectGanCube,
-    //   GanCubeConnection,
-    //   GanCubeEvent,
-    //   GanCubeMove,
-    //   MacAddressProvider,
-    makeTimeFromTimestamp,
-    cubeTimestampCalcSkew,
-    cubeTimestampLinearFit
-} from 'gan-web-bluetooth';
+// import {
+//     now,
+//     connectGanCube,
+//     //   GanCubeConnection,
+//     //   GanCubeEvent,
+//     //   GanCubeMove,
+//     //   MacAddressProvider,
+//     makeTimeFromTimestamp,
+//     cubeTimestampCalcSkew,
+//     cubeTimestampLinearFit
+// } from 'gan-web-bluetooth';
 
 const SOLVED_STATE = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
 
@@ -57,67 +57,67 @@ saveHolding.addEventListener('click', async () => {
 
 // connect smart cube ////////////////////////////////////////
 
-var conn;
-var hardwareName = 'n/a';
+// var conn;
+// var hardwareName = 'n/a';
 
-async function handleMoveEvent(event) {
-    if (event.type == "MOVE") {
-      console.log(event.move)
+// async function handleMoveEvent(event) {
+//     if (event.type == "MOVE") {
+//       console.log(event.move)
 
-      if (holdingOrientation.length > 0) {
-        doAlg(alg.cube.invert(holdingOrientation) + " " + event.move + " " + holdingOrientation);
-      }
-      else {
-        doAlg(event.move)
-      }
-      vc.cubeString = cube.toString();
-      vc.drawCube(ctx);
-    }
-}
+//       if (holdingOrientation.length > 0) {
+//         doAlg(alg.cube.invert(holdingOrientation) + " " + event.move + " " + holdingOrientation);
+//       }
+//       else {
+//         doAlg(event.move)
+//       }
+//       vc.cubeString = cube.toString();
+//       vc.drawCube(ctx);
+//     }
+// }
 
-function handleCubeEvent(event) {
-    console.log("GanCubeEvent", event);
-    if (event.type == "MOVE") {
-        handleMoveEvent(event);
-    } else if (event.type == "HARDWARE") {
-        hardwareName = event.hardwareName;
-        console.log(event.batteryLevel);
-    } else if (event.type == "DISCONNECT") {
+// function handleCubeEvent(event) {
+//     console.log("GanCubeEvent", event);
+//     if (event.type == "MOVE") {
+//         handleMoveEvent(event);
+//     } else if (event.type == "HARDWARE") {
+//         hardwareName = event.hardwareName;
+//         console.log(event.batteryLevel);
+//     } else if (event.type == "DISCONNECT") {
 
-    }
-}
+//     }
+// }
 
-const customMacAddressProvider = async (device, isFallbackCall) => {
-    if (isFallbackCall) {
-        return prompt('Unable do determine cube MAC address!\nPlease enter MAC address manually:');
-    } else {
-        return typeof device.watchAdvertisements == 'function' ? null :
-        prompt('Seems like your browser does not support Web Bluetooth watchAdvertisements() API. Enable following flag in Chrome:\n\nchrome://flags/#enable-experimental-web-platform-features\n\nor enter cube MAC address manually:');
-    }
-};
+// const customMacAddressProvider = async (device, isFallbackCall) => {
+//     if (isFallbackCall) {
+//         return prompt('Unable do determine cube MAC address!\nPlease enter MAC address manually:');
+//     } else {
+//         return typeof device.watchAdvertisements == 'function' ? null :
+//         prompt('Seems like your browser does not support Web Bluetooth watchAdvertisements() API. Enable following flag in Chrome:\n\nchrome://flags/#enable-experimental-web-platform-features\n\nor enter cube MAC address manually:');
+//     }
+// };
 
-var connectSmartCube = document.getElementById("connectSmartCube");
-connectSmartCube.addEventListener('click', async () => {
-    try {
-        if (conn) {
-            conn.disconnect();
-            conn = null;
-            connectSmartCube.textContent = 'Connect Smart Cube';
-            alert(`Smart cube ${hardwareName} disconnected`);
-        } else {
-            conn = await connectGanCube(customMacAddressProvider);
-            conn.events$.subscribe(handleCubeEvent);
-            await conn.sendCubeCommand({ type: "REQUEST_HARDWARE" });
-            await conn.sendCubeCommand({ type: "REQUEST_BATTERY" });
-            // await conn.sendCubeCommand({ type: "REQUEST_FACELETS" });
-            connectSmartCube.textContent = 'Disconnect Smart Cube';
-            alert(`Smart cube ${hardwareName} connected`);
-        }
+// var connectSmartCube = document.getElementById("connectSmartCube");
+// connectSmartCube.addEventListener('click', async () => {
+//     try {
+//         if (conn) {
+//             conn.disconnect();
+//             conn = null;
+//             connectSmartCube.textContent = 'Connect Smart Cube';
+//             alert(`Smart cube ${hardwareName} disconnected`);
+//         } else {
+//             conn = await connectGanCube(customMacAddressProvider);
+//             conn.events$.subscribe(handleCubeEvent);
+//             await conn.sendCubeCommand({ type: "REQUEST_HARDWARE" });
+//             await conn.sendCubeCommand({ type: "REQUEST_BATTERY" });
+//             // await conn.sendCubeCommand({ type: "REQUEST_FACELETS" });
+//             connectSmartCube.textContent = 'Disconnect Smart Cube';
+//             alert(`Smart cube ${hardwareName} connected`);
+//         }
     
-    } catch(e) {
-        connectSmartCube.textContent = 'Connect Smart Cube';
-    }
-});
+//     } catch(e) {
+//         connectSmartCube.textContent = 'Connect Smart Cube';
+//     }
+// });
 
 document.getElementById("loader").style.display = "none";
 var myVar = setTimeout(showPage, 1);
