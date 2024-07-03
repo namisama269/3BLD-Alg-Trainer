@@ -143,14 +143,14 @@ a:visited {
 }
 
 #controls > button {
-  background-color: grey; 
+  background-color: #4570de; 
   border: none;
   color: white;
   padding: 15px 32px;
   text-align: center; 
   text-decoration: none;
   display: inline-block;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 canvas {
