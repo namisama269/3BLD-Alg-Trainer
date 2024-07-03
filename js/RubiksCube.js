@@ -39,20 +39,36 @@ window.onbeforeunload = function () {
 }*/
 Cube.initSolver();
 
-var holdingOrientation = localStorage.getItem("holdingOrientation");
-document.getElementById('holdingOrientation').value = holdingOrientation;
-doAlg(holdingOrientation);
+const holdingOrientation = document.getElementById('holdingOrientation');
 
-var saveHolding = document.getElementById('saveHolding');
-saveHolding.addEventListener('click', async () => {
-    holdingOrientation = document.getElementById('holdingOrientation').value;
-    localStorage.setItem("holdingOrientation", holdingOrientation);
+// var saveHolding = document.getElementById('saveHolding');
+// saveHolding.addEventListener('click', async () => {
+//     holdingOrientation = document.getElementById('holdingOrientation').value;
+//     localStorage.setItem("holdingOrientation", holdingOrientation);
     
+//     cube.resetCube();
+//     doAlg(holdingOrientation.value);
+//     vc.cubeString = cube.toString();
+//     vc.drawCube(ctx);
+// });
+
+document.addEventListener("DOMContentLoaded", function() {
+    const savedValue = localStorage.getItem('holdingOrientation');
+    if (savedValue !== null) {
+        holdingOrientation.value = savedValue;
+    }
+    holdingOrientation.addEventListener('input', function() {
+        localStorage.setItem('holdingOrientation', holdingOrientation.value);
+    });
+
+    console.log(holdingOrientation.value);
+
     cube.resetCube();
-    doAlg(holdingOrientation);
-    vc.cubeString = cube.toString();
+    doAlg(holdingOrientation.value);
+    vc.cubeString = cube.asString();
     vc.drawCube(ctx);
 });
+
 
 
 // connect smart cube ////////////////////////////////////////
@@ -64,6 +80,16 @@ saveHolding.addEventListener('click', async () => {
 //     if (event.type == "MOVE") {
 //       console.log(event.move)
 
+//       if (holdingOrientation.value.length > 0) {
+//         doAlg(alg.cube.invert(holdingOrientation.value) + " " + event.move + " " + holdingOrientation.value);
+//       }
+//       else {
+//         doAlg(event.move)
+//       }
+//       vc.cubeString = cube.toString();
+//       vc.drawCube(ctx);
+//     }
+// }
 //       if (holdingOrientation.length > 0) {
 //         doAlg(alg.cube.invert(holdingOrientation) + " " + event.move + " " + holdingOrientation);
 //       }
@@ -661,7 +687,7 @@ function testAlg(algTest, addToHistory=true){
     document.getElementById("algdisp").innerHTML = "";
 
     cube.resetCube();
-    doAlg(holdingOrientation);
+    doAlg(holdingOrientation.value);
     doAlg(algTest.preorientation);
     doAlg(algTest.scramble);
     vc.cubeString = cube.toString();
@@ -710,7 +736,7 @@ function reTestAlg(){
         return;
     }
     cube.resetCube();
-    doAlg(holdingOrientation);
+    doAlg(holdingOrientation.value);
     doAlg(lastTest.preorientation);
     doAlg(lastTest.scramble);
     vc.cubeString = cube.toString();
@@ -728,7 +754,7 @@ function updateTrainer(scramble, solutions, algorithm, timer){
 
     if (algorithm!=null){
         cube.resetCube();
-        doAlg(holdingOrientation);
+        doAlg(holdingOrientation.value);
         doAlg(algorithm);
     }
 
@@ -1095,8 +1121,9 @@ function averageMovecount(algList, metric, includeAUF){
         var topAlg = algList[i].split("!")[0];
         topAlg = topAlg.replace(/\[|\]|\)|\(/g, "");
         // convert to moves if in comm notation
+        console.log(topAlg);
         topAlg = commToMoves(topAlg);
-        // console.log(topAlg);
+        console.log(topAlg);
 
         var moves = alg.cube.simplify(alg.cube.expand(alg.cube.fromString(topAlg)));
         

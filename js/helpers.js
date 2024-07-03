@@ -225,7 +225,7 @@ function getRepeatedAlg(alg) {
 }
 
 function commToMoves(alg) {
-    if (!isCommutator(alg)) {
+    if (!isCommutator(alg) && !alg.includes("+")) {
         return alg;
     }
 
@@ -239,44 +239,50 @@ function commToMoves(alg) {
 
     // process each comm
     comms.forEach(comm => {
-        comm = comm.trim();
-        comm = comm.replace(/\s+/g, " ");
-        // console.log(comm);
-        // get the setup move if exists
-        let setup = "";
-        if (comm.includes(":")) {
-            let parts = comm.split(":");
-            setup = parts[0];
-            comm = parts[1];
-        }
-
-        // split on , or /
-        let a = "", b = "";
-        let mainComm = "";
-
-        if (comm.includes(",")) {
-            let parts = comm.split(",");
-            a = parts[0], b = parts[1];
-            mainComm = a + " " + b + " " + invertMoves(a) + " " + invertMoves(b);
-        }
-        else if (comm.includes("/")) {
-            let parts = comm.split("/");
-            a = parts[0], b = parts[1];
-            mainComm = a + " " + b + " " + a + "2 " + invertMoves(b) + " " + a;
-            mainComm = mainComm.replace(/'2/g, "2");
+        if (!isCommutator(comm)) {
+            console.log(comm);
+            out += " " + comm;
         }
         else {
-            mainComm = comm;
+            comm = comm.trim();
+            comm = comm.replace(/\s+/g, " ");
+            // console.log(comm);
+            // get the setup move if exists
+            let setup = "";
+            if (comm.includes(":")) {
+                let parts = comm.split(":");
+                setup = parts[0];
+                comm = parts[1];
+            }
+
+            // split on , or /
+            let a = "", b = "";
+            let mainComm = "";
+
+            if (comm.includes(",")) {
+                let parts = comm.split(",");
+                a = parts[0], b = parts[1];
+                mainComm = a + " " + b + " " + invertMoves(a) + " " + invertMoves(b);
+            }
+            else if (comm.includes("/")) {
+                let parts = comm.split("/");
+                a = parts[0], b = parts[1];
+                mainComm = a + " " + b + " " + a + "2 " + invertMoves(b) + " " + a;
+                mainComm = mainComm.replace(/'2/g, "2");
+            }
+            else {
+                mainComm = comm;
+            }
+
+            // console.log(mainComm);
+
+            let moves = setup + " " + mainComm + " " + invertMoves(setup);
+
+            moves = moves.trim();
+            moves = moves.replace(/\s+/g, " ");
+
+            out += " " + moves;
         }
-
-        // console.log(mainComm);
-
-        let moves = setup + " " + mainComm + " " + invertMoves(setup);
-
-        moves = moves.trim();
-        moves = moves.replace(/\s+/g, " ");
-
-        out += " " + moves;
     });
 
     out = out.trim();
