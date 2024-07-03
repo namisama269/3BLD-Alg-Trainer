@@ -258,7 +258,7 @@ window.algs = {
     "LTCT (Andy Wong)": ltct_zeph,
     "LTCT (James)": ltct_james,
 
-    "LTEF (NOT ALGS, ONLY USE FOR TRAINING LETTER PAIRS)": ltef,
+    "LTEF (LETTER PAIRS ONLY)": ltef,
 
     "T2C (Zeph/Elliott)": t2c,
     "F2E (James)": f2e,
