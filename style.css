@@ -1,13 +1,13 @@
 body {
-  background: #9dbffa;
+  background: #282c34;
   font-family: Arial;
-  color: black;
+  color: white;
 }
 
 p {
   font-family: Arial;
   font-size: 20px;
-  color: black;
+  color: white;
 }
 
 hr { 
