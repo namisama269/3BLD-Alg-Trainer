@@ -8,7 +8,7 @@ const BLUE = "#2055FF";
 
 const CUBE_COLOR = BLACK;
 
-export class VisualCube {
+class VisualCube {
     constructor(width, height, scale, thetaX, thetaY, thetaZ, cubeSize, gapSize) {
         this.width = width;
         this.height = height;

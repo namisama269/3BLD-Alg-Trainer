@@ -2,7 +2,7 @@
 <html>
 
     <head>
-        <title>Alg Trainer</title>
+        <title>BLD Alg Trainer</title>
         <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
         <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
         <link rel="stylesheet" type="text/css" href="style.css">
@@ -46,7 +46,8 @@
                     <br>
                     <button id="connectSmartCube">Connect Smart Cube</button><br><br>
                     
-                    This feature uses the <a href="https://github.com/afedotov/gan-web-bluetooth" target="_blank">gan-web-bluetooth</a> library. Check the link for supported smart cubes.<br><br>
+                    This feature currently only works with the Qiyi smart cube.<br>
+                    If slice turns are done quickly (e.g. M2), the cube may not log all moves in time. In this case, do U U' to update the cube to the correct state.<br><br>
                     
                     <input id="userDefined" type="checkbox">Use user defined algset <button id="addSelected">Add currently selected algs</button><br>
                     <textarea id="userDefinedAlgs" cols=50 rows=50 style="display:none" placeholder="Place one alg per line. Lines starting with # will be ignored"></textarea>
@@ -154,16 +155,18 @@
 
         </div>
 
-        <script type="module" src="js/RubiksCube.js"></script>
         <script src="js/cube.js"></script>
         <script src="js/solve.js"></script>
         <script src="js/alg_jison.js"></script>
         <script src="js/alg.js"></script>
-        <script type="module" src="js/visualCube.js"></script>
+        <script src="js/visualCube.js"></script>
         <script src="js/helpers.js"></script>
-        <script type="module" src="js/controls.js"></script>
+        <script src="js/controls.js"></script>
         <script src="js/alg_list.js"></script>
-        <script type="module" src="js/keymaps.js"></script>
+        <script src="js/lzstring.js"></script>
+        <script src="js/encryption.js"></script>
+        <script src="js/keymaps.js"></script>
+        <script src="js/RubiksCube.js"></script>
     
     </body>
 </html>

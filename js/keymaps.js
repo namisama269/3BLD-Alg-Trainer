@@ -1,5 +1,3 @@
-import { KeyCombo } from './controls.js';
-
 var defaultKeymaps = [
     [new KeyCombo("KeyI"), "R"],
     [new KeyCombo("KeyK") , "R'"],
@@ -31,7 +29,7 @@ var defaultKeymaps = [
     [new KeyCombo("KeyX"), "E"],
     [new KeyCombo("Period"), "E'"]];
 
-export function getKeyMaps() {
+function getKeyMaps() {
     if (localStorage.getItem("keymaps") === null) {
         localStorage.setItem("keymaps", JSON.stringify(defaultKeymaps));
     }

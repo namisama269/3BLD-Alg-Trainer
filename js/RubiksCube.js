@@ -1,22 +1,5 @@
-// import $ from 'jquery';
-
-import {
-    now,
-    connectGanCube,
-    //   GanCubeConnection,
-    //   GanCubeEvent,
-    //   GanCubeMove,
-    //   MacAddressProvider,
-    makeTimeFromTimestamp,
-    cubeTimestampCalcSkew,
-    cubeTimestampLinearFit
-} from 'gan-web-bluetooth';
 
 const SOLVED_STATE = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
-
-import { VisualCube } from './visualCube.js';
-import { getKeyMaps } from './keymaps.js';
-import { KeyCombo, Listener } from './controls.js';
 
 var currentRotation = "";
 var currentAlgorithm = "";//After an alg gets tested for the first time, it becomes the currentAlgorithm.
@@ -61,79 +44,223 @@ document.addEventListener("DOMContentLoaded", function() {
         localStorage.setItem('holdingOrientation', holdingOrientation.value);
     });
 
-    console.log(holdingOrientation.value);
-
     cube.resetCube();
     doAlg(holdingOrientation.value);
-    vc.cubeString = cube.asString();
+    vc.cubeString = cube.toString();
     vc.drawCube(ctx);
 });
 
 
+// connect smart cube
+//////////////////////////////////////////////////////////////
 
-// connect smart cube ////////////////////////////////////////
+var UUID_SUFFIX = '-0000-1000-8000-00805f9b34fb';
+var SERVICE_UUID = '0000fff0' + UUID_SUFFIX;
+var CHRCT_UUID_CUBE = '0000fff6' + UUID_SUFFIX;
 
-var conn;
-var hardwareName = 'n/a';
+var QIYI_CIC_LIST = [0x0504];
+var KEYS = ['NoDg7ANAjGkEwBYCc0xQnADAVgkzGAzHNAGyRTanQi5QIFyHrjQMQgsC6QA'];
 
-async function handleMoveEvent(event) {
-    if (event.type == "MOVE") {
-      console.log(event.move)
-
-      if (holdingOrientation.value.length > 0) {
-        doAlg(alg.cube.invert(holdingOrientation.value) + " " + event.move + " " + holdingOrientation.value);
-      }
-      else {
-        doAlg(event.move)
-      }
-      vc.cubeString = cube.toString();
-      vc.drawCube(ctx);
+function toUuid128(uuid) {
+    if (/^[0-9A-Fa-f]{4}$/.exec(uuid)) {
+        uuid = "0000" + uuid + "-0000-1000-8000-00805F9B34FB";
     }
+    return uuid.toUpperCase();
 }
 
-function handleCubeEvent(event) {
-    console.log("GanCubeEvent", event);
-    if (event.type == "MOVE") {
-        handleMoveEvent(event);
-    } else if (event.type == "HARDWARE") {
-        hardwareName = event.hardwareName;
-        console.log(event.batteryLevel);
-    } else if (event.type == "DISCONNECT") {
-
-    }
+function matchUUID(uuid1, uuid2) {
+    return toUuid128(uuid1) == toUuid128(uuid2);
 }
 
-const customMacAddressProvider = async (device, isFallbackCall) => {
-    if (isFallbackCall) {
-        return prompt('Unable do determine cube MAC address!\nPlease enter MAC address manually:');
-    } else {
-        return typeof device.watchAdvertisements == 'function' ? null :
-        prompt('Seems like your browser does not support Web Bluetooth watchAdvertisements() API. Enable following flag in Chrome:\n\nchrome://flags/#enable-experimental-web-platform-features\n\nor enter cube MAC address manually:');
+function sendMessage(content) {
+    var msg = [0xfe];
+    msg.push(4 + content.length); // length = 1 (op) + cont.length + 2 (crc)
+    for (var i = 0; i < content.length; i++) {
+        msg.push(content[i]);
     }
+    var crc = crc16modbus(msg);
+    msg.push(crc & 0xff, crc >> 8);
+    var npad = (16 - msg.length % 16) % 16;
+    for (var i = 0; i < npad; i++) {
+        msg.push(0);
+    }
+    var encMsg = [];
+    var decoder = new aes128(JSON.parse(LZString.decompressFromEncodedURIComponent(KEYS[0])));
+    for (var i = 0; i < msg.length; i += 16) {
+        var block = msg.slice(i, i + 16);
+        decoder.encrypt(block);
+        for (var j = 0; j < 16; j++) {
+            encMsg[i + j] = block[j];
+        }
+    }
+    return chrct_cube.writeValue(new Uint8Array(encMsg).buffer);
+}
+
+function sendHello(mac) {
+    if (!mac) {
+        return;
+    }
+    var content = [0x00, 0x6b, 0x01, 0x00, 0x00, 0x22, 0x06, 0x00, 0x02, 0x08, 0x00];
+    for (var i = 5; i >= 0; i--) {
+        content.push(parseInt(mac.slice(i * 3, i * 3 + 2), 16));
+    }
+    return sendMessage(content);
+}
+
+let device = null;
+let deviceName = "";
+let chrct_cube = null;
+let connected = false;
+
+async function connect() {
+    device = await navigator.bluetooth.requestDevice(
+        {
+            filters: [
+                { namePrefix: "QY" }
+            ],
+            optionalServices: [SERVICE_UUID],
+        }
+    );
+
+    deviceName = device.name.trim();
+    // is this fixed for all qiyi smart cube?
+    let mac = 'CC:A3:00:00:' + deviceName.slice(10, 12) + ':' + deviceName.slice(12, 14);
+
+    let gatt = await device.gatt.connect();
+    let service = await gatt.getPrimaryService(SERVICE_UUID);
+    let chrcts = await service.getCharacteristics();
+
+    for (var i = 0; i < chrcts.length; i++) {
+        var chrct = chrcts[i];
+        if (matchUUID(chrct.uuid, CHRCT_UUID_CUBE)) {
+            chrct_cube = chrct;
+        }
+    }
+
+    chrct_cube.addEventListener('characteristicvaluechanged', onCubeEvent);
+    await chrct_cube.startNotifications();
+
+    await sendHello(mac);
+}
+
+async function disconnect() {
+    chrct_cube.removeEventListener('characteristicvaluechanged', onCubeEvent);
+    chrct_cube.stopNotifications();
+    device.gatt.disconnect();
+}
+
+function onCubeEvent(event) {
+    var value = event.target.value;
+    var encMsg = [];
+    for (var i = 0; i < value.byteLength; i++) {
+        encMsg[i] = value.getUint8(i);
+    }
+    var decoder = new aes128(JSON.parse(LZString.decompressFromEncodedURIComponent(KEYS[0])));
+    var msg = [];
+    for (var i = 0; i < encMsg.length; i += 16) {
+        var block = encMsg.slice(i, i + 16);
+        decoder.decrypt(block);
+        for (var j = 0; j < 16; j++) {
+            msg[i + j] = block[j];
+        }
+    }
+    msg = msg.slice(0, msg[1]);
+    if (msg.length < 3 || crc16modbus(msg) != 0) {
+        return;
+    }
+    parseCubeData(msg);
+}
+
+function parseFacelet(faceMsg) {
+    var ret = [];
+    for (var i = 0; i < 54; i++) {
+        ret.push("LRDUFB".charAt(faceMsg[i >> 1] >> (i % 2 << 2) & 0xf));
+    }
+    ret = ret.join("");
+    return ret;
+}
+
+const moveMap = {
+    0x1: "L'",
+    0x2: "L",
+    0x3: "R'",
+    0x4: "R",
+    0x5: "D'",
+    0x6: "D",
+    0x7: "U'",
+    0x8: "U",
+    0x9: "F'",
+    0xa: "F",
+    0xb: "B'",
+    0xc: "B",
 };
+
+var prevMoves = [];
+var lastTs = 0;
+
+function parseCubeData(msg) {
+    if (msg[0] != 0xfe) {
+        console.log('[qiyicube]', 'error cube data', msg);
+    }
+    var opcode = msg[2];
+    var ts = (msg[3] << 24 | msg[4] << 16 | msg[5] << 8 | msg[6]);
+    if (opcode == 0x2) { // cube hello
+        sendMessage(msg.slice(2, 7));
+        batteryLevel = msg[35];
+    } else if (opcode == 0x3) { // state change
+        sendMessage(msg.slice(2, 7));
+
+        var todoMoves = [[msg[34], ts]];
+        while (todoMoves.length < 10) {
+            var off = 91 - 5 * todoMoves.length;
+            var hisTs = (msg[off] << 24 | msg[off + 1] << 16 | msg[off + 2] << 8 | msg[off + 3]);
+            var hisMv = msg[off + 4];
+            if (hisTs <= lastTs) {
+                break;
+            }
+            todoMoves.push([hisMv, hisTs]);
+        }
+        if (todoMoves.length > 1) {
+            console.log('[qiyicube]', 'miss history moves', JSON.stringify(todoMoves), lastTs);
+        }
+
+        for (let i = todoMoves.length-1; i >= 0; --i) {
+            // do logged move on the cube
+            doAlg(alg.cube.invert(holdingOrientation.value));
+            doAlg(moveMap[todoMoves[i][0]]);
+            doAlg(holdingOrientation.value);
+        }
+    
+        todoMoves = [];
+    
+        vc.cubeString = cube.toString();
+        vc.drawCube(ctx);
+    }
+    lastTs = ts;
+}
 
 var connectSmartCube = document.getElementById("connectSmartCube");
 connectSmartCube.addEventListener('click', async () => {
     try {
-        if (conn) {
-            conn.disconnect();
-            conn = null;
+        if (connected) {
+            await disconnect();
             connectSmartCube.textContent = 'Connect Smart Cube';
-            alert(`Smart cube ${hardwareName} disconnected`);
+            alert(`Smart cube ${deviceName} disconnected`);
+            connected = false;
         } else {
-            conn = await connectGanCube(customMacAddressProvider);
-            conn.events$.subscribe(handleCubeEvent);
-            await conn.sendCubeCommand({ type: "REQUEST_HARDWARE" });
-            await conn.sendCubeCommand({ type: "REQUEST_BATTERY" });
-            // await conn.sendCubeCommand({ type: "REQUEST_FACELETS" });
+            await connect();
+            connected = true;
             connectSmartCube.textContent = 'Disconnect Smart Cube';
-            alert(`Smart cube ${hardwareName} connected`);
+            alert(`Smart cube ${deviceName} connected`);
         }
-    
     } catch(e) {
         connectSmartCube.textContent = 'Connect Smart Cube';
     }
-});
+});     
+
+
+//////////////////////////////////////////////////////////////
+
 
 document.getElementById("loader").style.display = "none";
 var myVar = setTimeout(showPage, 1);
@@ -1184,7 +1311,7 @@ var lastKeyMap = null;
 
 var historyIndex;
 
-export function nextScramble(displayReady=true){
+function nextScramble(displayReady=true){
     document.getElementById("scramble").style.color = "white";
     stopTimer(false);
     if (displayReady){
