@@ -29,7 +29,7 @@
                 <form action="javascript:void(0);">
                     Holding cube at
                     <input type="text" id="holdingOrientation" value="" size="4"> 
-                    rotation from WCA orientation<br>
+                    rotation away from WCA orientation<br>
                     <!-- <button id="saveHolding">Save</button><br><br> -->
                     
                     <input id="useVirtual" type="checkbox">Use Virtual Cube<br>
@@ -46,8 +46,7 @@
                     <br>
                     <button id="connectSmartCube">Connect Smart Cube</button><br><br>
                     
-                    This feature currently only works with the Qiyi smart cube.<br>
-                    If slice turns are done quickly (e.g. M2), the cube may not log all moves in time. In this case, do U U' to update the cube to the correct state.<br><br>
+                    Currently Qiyi and Moyu V10 smart cubes are supported.<br><br>
                     
                     <input id="userDefined" type="checkbox">Use user defined algset <button id="addSelected">Add currently selected algs</button><br>
                     <textarea id="userDefinedAlgs" cols=50 rows=50 style="display:none" placeholder="Place one alg per line. Lines starting with # will be ignored"></textarea>
@@ -165,6 +164,9 @@
         <script src="js/alg_list.js"></script>
         <script src="js/lzstring.js"></script>
         <script src="js/encryption.js"></script>
+        <script src="js/isaac.js"></script>
+        <script src="js/mathlib.js"></script>
+        <script src="js/smartCube.js"></script>
         <script src="js/keymaps.js"></script>
         <script src="js/RubiksCube.js"></script>
     
