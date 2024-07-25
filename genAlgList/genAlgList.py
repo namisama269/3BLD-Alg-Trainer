@@ -2,7 +2,7 @@ import pandas as pd # type: ignore
 import re
 import commutator
 
-df = pd.read_csv("genAlgList/algcsv/2EO.csv", header=None)
+df = pd.read_csv("genAlgList/algcsv/ffedges.csv", header=None)
 
 for column_name in df.columns:
     # print(f"Column: {column_name}")
@@ -52,7 +52,7 @@ for column_name in df.columns:
         # value = re.sub(r"'(\S)", r"' \1", value)
 
         if j > 0:
-            values.append(f"{value}!{commutator.finalReplaceAlg(value)}")
+            values.append(f"{value}!{commutator.expand(value)}")
         else:
             values.append(value)
 
