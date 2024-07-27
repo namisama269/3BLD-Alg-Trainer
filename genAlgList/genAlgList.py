@@ -2,7 +2,7 @@ import pandas as pd # type: ignore
 import re
 import commutator
 
-df = pd.read_csv("genAlgList/algcsv/ffedges.csv", header=None)
+df = pd.read_csv("genAlgList/algcsv/ffcorners.csv", header=None)
 
 for column_name in df.columns:
     # print(f"Column: {column_name}")
