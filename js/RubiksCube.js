@@ -40,9 +40,9 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function applyMoves(moves) {
-    doAlg(alg.cube.invert(holdingOrientation.value));
-    doAlg(moves);
-    doAlg(holdingOrientation.value); 
+    // doAlg(alg.cube.invert(holdingOrientation.value));
+    doAlg(alg.cube.invert(holdingOrientation.value) + " " + moves + " " + holdingOrientation.value, true);
+    // console.log(cube.isSolved());
     vc.cubeString = cube.toString();
     vc.drawCube(ctx);
 }
@@ -85,6 +85,7 @@ function showPage(){
 
 var defaults = {"useVirtual":true,
                 "hideTimer":true,
+                "includeRecognitionTime":true,
                 "showScramble":true,
                 "realScrambles":true,
                 "randAUF":false,
@@ -161,7 +162,13 @@ hideTimer.addEventListener("click", function(){
     localStorage.setItem("hideTimer", this.checked);
     stopTimer(false);
     document.getElementById("timer").innerHTML = "0.00";
+});
 
+var includeRecognitionTime = document.getElementById("includeRecognitionTime");
+var isIncludeRecognitionTime = localStorage.getItem("includeRecognitionTime") === "true";
+includeRecognitionTime.addEventListener("click", function(){
+    localStorage.setItem("includeRecognitionTime", this.checked);
+    isIncludeRecognitionTime = includeRecognitionTime.checked;
 });
 
 var visualCube = document.getElementById("visualcube");
@@ -306,13 +313,27 @@ try{ // only for mobile
 
 }
 
-function doAlg(algorithm){
+function doAlg(algorithm, updateTimer=false){
     cube.doAlgorithm(algorithm);
     vc.cubeString = cube.toString();
     vc.drawCube(ctx);
 
+    // console.log(isIncludeRecognitionTime);
+
+    if (isUsingVirtualCube() && !isIncludeRecognitionTime && updateTimer) {
+        if (!timerIsRunning) {
+            startTimer();
+        }
+    }
+
     if (timerIsRunning && cube.isSolved() && isUsingVirtualCube()){
-        stopTimer();
+        if (updateTimer) {
+            stopTimer();
+            nextScramble();
+        }
+        else {
+            stopTimer();
+        }
     }
 }
 
@@ -876,11 +897,13 @@ function updateStats(){
 function updateTimeList(){
     var i;
     var timeList = document.getElementById("timeList");
+    var scrollTimes = document.getElementById("scrollTimes");
     timeList.innerHTML = "&nbsp";
     for (i=0; i<timeArray.length;i++){
         timeList.innerHTML += timeArray[i].toString();
         timeList.innerHTML += " ";
     }
+    scrollTimes.scrollTop = scrollTimes.scrollHeight;
 }
 
 //Create Checkboxes for each subset
@@ -1134,7 +1157,10 @@ function nextScramble(displayReady=true){
     };
     if (isUsingVirtualCube() ){
         testAlg(generateAlgTest());
-        startTimer();
+        if (isIncludeRecognitionTime) {
+            console.log("start timer");
+            startTimer();
+        } 
     }
     else {
         testAlg(generateAlgTest());
@@ -1189,7 +1215,7 @@ function updateControls() {
     listener.reset();
 
     keymaps.forEach(function(keymap){
-        listener.register(keymap[0], function() {  doAlg(keymap[1]) });
+        listener.register(keymap[0], function() {  doAlg(keymap[1], true) });
     });
     listener.register(new KeyCombo("Backspace"), function() { displayAlgorithmForPreviousTest();});
     listener.register(new KeyCombo("Escape"), function() {
