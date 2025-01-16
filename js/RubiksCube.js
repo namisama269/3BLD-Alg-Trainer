@@ -85,7 +85,7 @@ function showPage(){
 
 var defaults = {"useVirtual":true,
                 "hideTimer":true,
-                "includeRecognitionTime":true,
+                "includeRecognitionTime":false,
                 "showScramble":true,
                 "realScrambles":true,
                 "randAUF":false,
