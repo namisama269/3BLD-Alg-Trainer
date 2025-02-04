@@ -2,7 +2,7 @@
 <html>
 
     <head>
-        <title>3BLD Alg Trainer</title>
+        <title>Alg Trainer</title>
         <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
         <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
         <link rel="stylesheet" type="text/css" href="style.css">
@@ -17,21 +17,33 @@
             <!-- <hr> -->
             <div class=column_left>
 
-                <select id="algsetpicker" size=18 class=algsetpicker>
+                <!-- <select id="algsetpicker" size=18 class=algsetpicker>
                 </select>
                 <div id="cboxes"></div>
-                <button id="toggleAlgsetSelectAll" type="button">Select All</button>
+                <button id="toggleAlgsetSelectAll" type="button">Select All</button> -->
                 <!-- <br>Leave all checkboxes unchecked to test on the full algset. -->
 
-                <br>
+                <!-- <br> -->
+
+                <h2>Enter algs:</h2>
+                <!-- <input id="userDefined" type="checkbox">Use user defined algset <button id="addSelected">Add currently selected algs</button><br> -->
+                <textarea id="userDefinedAlgs" cols=50 rows=20 placeholder="Place one alg per line. Lines starting with # will be ignored"></textarea>
 
                 <h2>Settings</h2>
-                <form action="javascript:void(0);">
-                    Holding cube at
-                    <input type="text" id="holdingOrientation" value="" size="4"> 
-                    rotation away from WCA orientation<br>
-                    <!-- <button id="saveHolding">Save</button><br><br> -->
+
+                <form action="javascript:void(0);">     
                     
+                    <div>
+                        Holding cube at <input type="text" id="holdingOrientation" value="" size="4"> rotation away from WCA orientation<br>
+                    </div>    
+                    <div>
+                        Initial mask: <br>
+                        <input id="initialMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
+                    </div>
+                    <div>
+                        Final mask: <br>
+                        <input id="finalMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
+                    </div>
                     <input id="useVirtual" type="checkbox">Use Virtual Cube<br>
                     <input id="hideTimer" type="checkbox">Hide timer<br>
                     <input id="includeRecognitionTime" type="checkbox">Include recognition time<br>
@@ -41,19 +53,16 @@
                     <input id="prescramble" type="checkbox" checked="true">Scramble subsequent steps (requires real scrambles to be checked)<br>
                     <input id="goInOrder" type="checkbox">Go in order<br>
                     <input id="goToNextCase" type="checkbox">Don't show alg after stopping timer (press the left arrow key to view previous case)<br>
-                    <input id="mirrorAllAlgs" type="checkbox">Mirror across <span style="font-family: Consolas, monospace;">M</span> <input id="randomizeMMirror" type="checkbox">Randomize<br>
-                    <input id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across <span style="font-family: Consolas, monospace;">S</span> <input id="randomizeSMirror" type="checkbox">Randomize<br>
+                    <input id="mirrorAllAlgs" type="checkbox">Mirror across M <input id="randomizeMMirror" type="checkbox">Randomize<br>
+                    <input id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across S <input id="randomizeSMirror" type="checkbox">Randomize<br>
 
-                    <br>
-                    <button id="connectSmartCube">Connect Smart Cube</button><br><br>
                     
-                    Currently Qiyi and Moyu V10 smart cubes are supported.<br><br>
-                    
-                    <input id="userDefined" type="checkbox">Use user defined algset <button id="addSelected">Add currently selected algs</button><br>
-                    <textarea id="userDefinedAlgs" cols=50 rows=50 style="display:none" placeholder="Place one alg per line. Lines starting with # will be ignored"></textarea>
-                    <br>
 
-                    Preorientation: <br>
+
+                </form>
+                <br>
+
+                Preorientation: <br>
 
                     <input id="fullCN" type="checkbox"> Full colour neutrality<br>
                     or<br>
@@ -72,16 +81,10 @@
                     <a href="scramblingNote.html">Note on preorientation settings</a> 
                     <br><br>
 
-
-                </form>
-
-
-
-                <h2>Algorithm Credits</h2>
-
-                For all of the algs in this trainer in spreadsheet form, <a href="https://drive.google.com/drive/folders/1bK3wUbRcqYZX8IGkp7Lk0V8HLk-KSK6N">click here</a>
-                <br><br>
-
+                <br>
+                    <button id="connectSmartCube">Connect Smart Cube</button><br><br>
+                    
+                    Currently Qiyi and Moyu V10 smart cubes are supported.<br><br>
 
             </div>
 
@@ -136,10 +139,6 @@
                     Esc: Reset case without showing algorithm.<br> 
                     <h4> View/Edit Keyboard Controls <a href="controls.html">here</a>. </h4>
                     
-
-                    <a href="https://discord.gg/K7tpCJs">Join my Discord server!</a>
-                    <br><br>
-
                     Please report bugs by filing an issue <a href="https://github.com/tao-yu/Alg-Trainer/issues">here</a>, or by messaging me on discord, Speedsolving.com or Reddit. 
                     
                     <br><br>

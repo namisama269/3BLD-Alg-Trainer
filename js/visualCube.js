@@ -46,7 +46,7 @@ class VisualCube {
             "F": GREEN,
             "B": BLUE,
             "z": BLACK,
-            "x": "#555555",
+            "x": "#777777",
         }
         this.faceBase = {
             "U": [this.points[4], this.points[5], this.points[1], this.points[0]],
@@ -164,7 +164,7 @@ class VisualCube {
         
         // console.log(this.cubeString);
         let cubeData = convertCubeString(this.cubeString);
-        // console.log(cubeData);
+        // console.log(this.cubeString);
     
         for (let i = 0; i < dists.length; ++i) {
             let face = dists[i][1];

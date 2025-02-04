@@ -161,3 +161,16 @@ canvas {
 #holdingOrientation {
   white-space: pre;
 }
+
+form {
+  /* margin-bottom: 5px; */
+}
+form input, form label, form button {
+  margin-bottom: 5px;
+  box-sizing: border-box;
+  overflow-wrap: normal;
+}
+
+#userDefinedAlgs {
+  resize: vertical; /* Allow only vertical resizing */
+}
