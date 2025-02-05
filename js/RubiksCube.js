@@ -16,7 +16,7 @@ var currentAlgIndex = 0;
 var algorithmHistory = [];
 var shouldRecalculateStatistics = true;
 
-// Cube.initSolver();
+Cube.initSolver();
 
 const holdingOrientation = document.getElementById('holdingOrientation');
 document.addEventListener("DOMContentLoaded", function() {
@@ -1355,22 +1355,19 @@ function RubiksCube() {
 
     this.isSolved = function(initialMask=""){
         for (var i = 0; i<6;i++){
-            var colour1 = this.cubestate[9*i+4][0];
+            let uniqueColorsOnFace = new Set();
+
             for (var j = 0; j<9; j++){
                 // console.log(this.toString());
                 // console.log(initialMask);
-                if (
-                    initialMask.length == 54 &&
-                    initialMask[this.cubestate[9*i + j][1]] != 'x' && 
-                    this.cubestate[9*i + j][0] != colour1
-                ){
-                    return false;
+                if (initialMask.length == 54 && initialMask[this.cubestate[9*i + j][1]] == 'x') {
+                    continue;
                 }
-                else if (
-                    this.cubestate[9*i + j][0] != colour1
-                ){
-                    return false;
-                }
+                uniqueColorsOnFace.add(this.cubestate[9*i + j][0]);
+            }
+
+            if (uniqueColorsOnFace.size > 1) {
+                return false;
             }
         }
         return true;
