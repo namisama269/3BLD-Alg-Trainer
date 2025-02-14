@@ -4,10 +4,15 @@ html {
     overflow: hidden;
 }
 
+:root {
+    --primary-color: #1c1d22;
+    --secondary-color: #282c34;
+}
+
 body {
 
     font-family: Arial;
-    background: black;
+    background: var(--primary-color);
     min-height: 100vh;
     overflow: hidden;
     display: flex;
@@ -94,7 +99,7 @@ tr {
     width: 90%;
     height: 80vh;
     z-index: 9999;
-    background-color: rgb(90, 90, 90);
+    background-color: var(--secondary-color);
 }
 
 #right_popup {
@@ -106,7 +111,7 @@ tr {
     width: 90%;
     height: 80vh;
     z-index: 9999;
-    background-color: rgb(90, 90, 90);
+    background-color: var(--secondary-color);
 }
 
 .column_left {
@@ -114,7 +119,7 @@ tr {
     height: 70vh;
     overflow: auto;
     padding: 20px;
-    background-color: rgb(90, 90, 90);
+    background-color: var(--secondary-color);
     color: white;
     font-size: 18px;
 }
@@ -124,7 +129,7 @@ tr {
     height: 70vh;
     overflow: auto;
     padding: 20px;
-    background-color: rgb(90, 90, 90);
+    background-color: var(--secondary-color);
     color: white;
     font-size: 18px;
 }
@@ -225,7 +230,7 @@ a:visited {
 
 
 .big_button {
-    background-color: grey;
+    background-color: #4570de; 
     border: none;
     color: white;
     margin: 3px;
@@ -252,7 +257,7 @@ a:visited {
 .sidebar_button {
     flex: 1;
     margin: 3px;
-    background-color: grey;
+    background-color: #4570de; 
     color: white;
     border: none;
     font-size: 18px;
@@ -264,6 +269,6 @@ a:visited {
 }
 
 canvas {
-    width: 300px;
-    height: 300px;
+    width: 360px;
+    height: 360px;
 }

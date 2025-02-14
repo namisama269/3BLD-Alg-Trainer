@@ -19,6 +19,8 @@ var shouldRecalculateStatistics = true;
 Cube.initSolver();
 
 const holdingOrientation = document.getElementById('holdingOrientation');
+let currentPreorientation = "";
+
 document.addEventListener("DOMContentLoaded", function() {
     const savedValue = localStorage.getItem('holdingOrientation');
     if (savedValue !== null) {
@@ -29,8 +31,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     cube.resetCube();
-    doAlg(holdingOrientation.value);
-    cube.resetMask();
     updateVirtualCube();
 });
 
@@ -56,10 +56,146 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
-function applyMoves(moves) {
-    // doAlg(alg.cube.invert(holdingOrientation.value));
-    doAlg(alg.cube.invert(holdingOrientation.value) + " " + moves + " " + holdingOrientation.value, true);
-    // console.log(cube.isSolved());
+// find a non-center sticker that does not move for the entire alg
+function findPivot(alg) {
+    let cube = new RubiksCube();
+    let moves = alg.split(" ");
+    let states = [];
+    
+    for (let move of moves) {
+        cube.doAlgorithm(move);
+        states.push(cube.getMaskValues());
+    }
+    
+    console.log(states.map(state => state.join(",")).join("\n"));
+    
+    for (let i = 0; i < 54; ++i) {
+        // skip centers
+        if (i % 9 == 4) continue;
+
+        let stateSet = new Set();
+        for (let state of states) {
+            stateSet.add(state[i]);
+        }
+
+        if (stateSet.size == 1) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+// move the pivot so that it is back in its starting place
+// brute force all combination of 2 rotations
+function findRotationToFixPivot(pivotIndex) {
+    const rotations = ["", "x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2"];
+
+    for (let i = 0; i < rotations.length; ++i) {
+        for (let j = 0; j < rotations.length; ++j) {
+            let rotation = rotations[i] + ' ' + rotations[j];
+            rotation = rotation.trim();
+
+            // console.log(rotation);
+
+            cube.doAlgorithm(rotation);
+            if (cube.cubestate[pivotIndex][1] == pivotIndex) {
+                cube.doAlgorithm(alg.cube.invert(rotation));
+                return rotation;
+            }
+
+            cube.doAlgorithm(alg.cube.invert(rotation));
+        }
+    }
+
+    return "rotation not found";
+}
+
+function simplifyRotation(move, rotation) {
+    const rotationMap = {
+        "x": { "B": "U", "F": "D", "U": "F", "D": "B", "L": "L", "R": "R" },
+        "x'": { "F": "U", "B": "D", "U": "B", "D": "F", "L": "L", "R": "R" },
+        "y": { "L": "F", "R": "B", "F": "R", "B": "L", "U": "U", "D": "D" },
+        "y'": { "F": "L", "B": "R", "L": "B", "R": "F", "U": "U", "D": "D" },
+        "z": { "U": "L", "D": "R", "L": "D", "R": "U", "F": "F", "B": "B" },
+        "z'": { "U": "R", "D": "L", "L": "U", "R": "D", "F": "F", "B": "B" }
+    };
+
+    move = move.trim();
+    rotation = rotation.trim();
+
+    if (rotation in rotationMap && move[0] in rotationMap[rotation]) {
+        return rotationMap[rotation][move[0]] + move.slice(1);
+    }
+
+    return move; // Return unchanged if no transformation is needed
+}
+
+function applyMoves(moves) {   
+    let ori = cube.wcaOrient();
+    doAlg(alg.cube.invert(ori), false);
+    let startingRotation = ori;
+    console.log("starting rotation: ", startingRotation);
+
+
+    let fixPivotRotation = "";
+
+    if (algorithmHistory.length > 0) {
+        var lastTest = algorithmHistory[algorithmHistory.length-1];
+        if (lastTest==undefined){
+            return;
+        }
+
+
+        tmp = startingRotation + " " + moves + " " + alg.cube.invert(startingRotation);
+        cube.doAlgorithm(tmp);
+
+        let pivotIndex = findPivot(commToMoves(lastTest.solutions[0]));
+
+        if (pivotIndex != -1) {
+            fixPivotRotation = findRotationToFixPivot(pivotIndex);
+            if (fixPivotRotation.length > 0) {
+                // doAlg(fixPivotRotation, true);
+                // doAlg(alg.cube.invert(fixPivotRotation), true);
+
+                console.log(lastTest.solutions[0], "pivot at", pivotIndex, "fix with rotation", fixPivotRotation);
+
+                
+            }
+        }
+
+        cube.doAlgorithm(alg.cube.invert(tmp));
+
+        console.log("doing alg: ", lastTest.solutions[0]);
+    }
+
+    let simplifiedMove = moves;
+    for (rotation of startingRotation.split(" ")) {
+        simplifiedMove = simplifyRotation(simplifiedMove, rotation);
+    }
+
+    cube.doAlgorithm(
+        startingRotation 
+        + " " + 
+        alg.cube.invert(holdingOrientation.value)
+        + " " +  
+        moves 
+        + " " + 
+        holdingOrientation.value
+        + " " + 
+        alg.cube.invert(startingRotation) 
+        + " " +  
+        fixPivotRotation
+        // alg.cube.invert(fixPivotRotation)
+        
+    );
+
+    if (fixPivotRotation.length > 0)
+        console.log("need to do fpr", fixPivotRotation);
+
+
+    doAlg("U U'", true);
+
     updateVirtualCube();
 }
 
@@ -327,12 +463,40 @@ try{ // only for mobile
 
 }
 
-function updateVirtualCube() {
+function getRotationMap(moves) {
+    let rotationMap = {};
+
+    let rotationCube = new RubiksCube();
+    rotationCube.doAlgorithm(moves);
+    // let rotationCubeString = rotationCube.toString();
+    // console.log(rotationCubeString);
+
+    let faces = "URFDLB";
+    for (let i = 0; i < 6; ++i) {
+        rotationMap[faces[i]] = faces[rotationCube.cubestate[9*i+5][0]-1];
+    }
+
+    return rotationMap;
+}
+
+function updateVirtualCube(initialRotations = holdingOrientation.value + ' ' + currentPreorientation) {
+    console.log("preorientation: ", currentPreorientation);
     vc.cubeString = cube.toString();
-    vc.cubeString = cube.toInitialMaskedString(initialMask.value);
+    let initialMaskedCubeString = cube.toInitialMaskedString(initialMask.value);
+    // console.log(initialMaskedCubeString);
+    // console.log(vc.cubeString);
+
+    let rotationMap = getRotationMap(initialRotations);
+    // console.log(rotationMap);
 
     for (let k = 0; k < 54; ++k) {
-        if (finalMask.value[k] == 'x') {
+        if (vc[k] != 'x') {
+            // console.log(vc.cubeString[k]);
+            // console.log(rotationMap[vc.cubeString[k]]);
+            vc.cubeString = setCharAt(vc.cubeString, k, rotationMap[vc.cubeString[k]]);
+        }
+
+        if (initialMaskedCubeString[k] == 'x' || finalMask.value[k] == 'x') {
             vc.cubeString = setCharAt(vc.cubeString, k, 'x');
         }
     }
@@ -343,7 +507,7 @@ function updateVirtualCube() {
 
 function doAlg(algorithm, updateTimer=false){
     cube.doAlgorithm(algorithm);
-    updateVirtualCube();
+    // updateVirtualCube();
 
     // console.log(isIncludeRecognitionTime);
 
@@ -468,6 +632,7 @@ function generatePreScramble(raw_alg, generator, times, obfuscateAlg, premoves="
     }
 
 }
+
 function generateOrientation(){
     var cn1 = document.getElementById("colourneutrality1").value;
     if (document.getElementById("fullCN").checked){
@@ -511,7 +676,8 @@ class AlgTest {
         this.rawAlgs = rawAlgs;
         this.scramble = scramble;
         this.solutions = solutions;
-        this.preorientation = preorientation;
+        this.preorientation = alg.cube.simplify(preorientation);
+        currentPreorientation = this.preorientation;
         this.solveTime = solveTime;
         this.time = time;
         // this.set = set;
@@ -599,11 +765,6 @@ function testAlg(algTest, addToHistory=true){
     document.getElementById("algdisp").innerHTML = "";
 
     cube.resetCube();
-    doAlg(holdingOrientation.value, false);
-    cube.resetMask();
-    // console.log(cube.cubestate);
-    doAlg(algTest.preorientation, false);
-    cube.resetMask();
     doAlg(algTest.scramble, false);
     updateVirtualCube();
 
@@ -640,16 +801,14 @@ function updateAlgsetStatistics(algList){
 }
 
 function reTestAlg(){
-
     var lastTest = algorithmHistory[algorithmHistory.length-1];
+    console.log(lastTest);
     if (lastTest==undefined){
         return;
     }
     cube.resetCube();
-    doAlg(holdingOrientation.value, false);
-    cube.resetMask();
-    doAlg(lastTest.preorientation, false);
     doAlg(lastTest.scramble, false);
+    console.log("ok");
     updateVirtualCube();
 
 }
@@ -664,8 +823,6 @@ function updateTrainer(scramble, solutions, algorithm, timer){
 
     if (algorithm!=null){
         cube.resetCube();
-        doAlg(holdingOrientation.value, false);
-        cube.resetMask();
         doAlg(algorithm, false);
     }
 
@@ -741,7 +898,12 @@ function displayAlgorithmFromHistory(index){
         timerText = algTest.solveTime.toString()
     }
 
-    updateTrainer("<span style=\"color: #90f182\">" + algTest.orientRandPart + "</span>" + " "+ algTest.scramble, algTest.solutions.join("<br><br>"), algTest.preorientation+algTest.scramble, timerText);
+    updateTrainer(
+        "<span style=\"color: #90f182\">" + algTest.orientRandPart + "</span>" + " "+ algTest.scramble, 
+        algTest.solutions.join("<br><br>"), 
+        algTest.preorientation + algTest.scramble, 
+        timerText
+    );
 
     scramble.style.color = '#e6e6e6';
 }
@@ -1348,6 +1510,10 @@ function RubiksCube() {
         }
     }
 
+    this.getMaskValues = function(){
+        return this.cubestate.map(facelet => facelet[1]);
+    }
+
     this.solution = function(){
         var gcube = Cube.fromString(this.toString());
         return gcube.solve();
@@ -1397,13 +1563,13 @@ function RubiksCube() {
 
         if (this.cubestate[13][0]==3) {//R face
             this.doAlgorithm("y");
-            moves+="y";
+            moves+=" y";
         } else if (this.cubestate[40][0]==3) {//on L face
             this.doAlgorithm("y'");
-            moves+="y'";
+            moves+=" y'";
         } else if (this.cubestate[49][0]==3) {//on B face
             this.doAlgorithm("y2");
-            moves+="y2";
+            moves+=" y2";
         }
 
         return moves;

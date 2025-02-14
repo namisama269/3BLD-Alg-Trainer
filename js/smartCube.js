@@ -277,7 +277,7 @@ class MoyuV10CubeConnection extends SmartCubeConnection {
         }
         for (var i = moveDiff - 1; i >= 0; i--) {
             this.applyMoves(this.prevMoves[i]);
-            // console.log('[Moyu32Cube] move', this.prevMoves[i]);
+            console.log('[Moyu32Cube] move', this.prevMoves[i]);
         }
     }
 }

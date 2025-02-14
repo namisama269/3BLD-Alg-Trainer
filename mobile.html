@@ -17,118 +17,66 @@
     <div id="left_popup">
         <div class=column_left>
 
-            <select id="algsetpicker" class=algsetpicker>
-            </select>
-            <div id="cboxes"></div>
-            <br>Leave all checkboxes unchecked to test on the full algset.
-
-            <br>
+            Enter algs:
+            <!-- <input id="userDefined" type="checkbox">Use user defined algset <button id="addSelected">Add currently selected algs</button><br> -->
+            <textarea id="userDefinedAlgs" cols=50 rows=20 placeholder="Place one alg per line. Lines starting with # will be ignored"></textarea>
 
             <h2>Settings</h2>
-            <form action="javascript:void(0);">
 
+            <form action="javascript:void(0);">     
+                
+                <div>
+                    Holding cube at <input type="text" id="holdingOrientation" value="" size="4"> rotation away from WCA orientation<br>
+                </div>    
+                <div>
+                    Initial mask: <br>
+                    <input id="initialMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
+                </div>
+                <div>
+                    Final mask: <br>
+                    <input id="finalMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
+                </div>
                 <input id="useVirtual" type="checkbox">Use Virtual Cube<br>
                 <input id="hideTimer" type="checkbox">Hide timer<br>
+                <input id="includeRecognitionTime" type="checkbox">Include recognition time<br>
                 <input id="showScramble" type="checkbox">Show Scramble<br>
                 <input id="realScrambles" type="checkbox">Use Real Scrambles<br>
                 <input id="randAUF" type="checkbox">Random AUF<br>
-                <input id="prescramble" type="checkbox" checked="true">Scramble subsequent steps <br>
+                <input id="prescramble" type="checkbox" checked="true">Scramble subsequent steps (requires real scrambles to be checked)<br>
                 <input id="goInOrder" type="checkbox">Go in order<br>
-                <input id="goToNextCase" type="checkbox">Don't show alg after stopping timer <br>
-                <input id="mirrorAllAlgs" type="checkbox">Mirror across <span style="font-family: Consolas, monospace;">M</span> <input id="randomizeMMirror" type="checkbox">Randomize<br>
-                <input id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across <span style="font-family: Consolas, monospace;">S</span> <input id="randomizeSMirror" type="checkbox">Randomize<br>
-                Line style <select id="lines">
-                    <option value="none"> None </option>
-                    <option selected value="thin-black"> Thin black </option>
-                    <option value="thick-black"> Thick black </option>
-                    <option value="thin-gray"> Thin gray </option>
-                    <option value="thick-gray"> Thick gray </option>
-                </select> <br>
-                Virtual cube size: <select id="cubeType">
-                    <option value="3x3" default>3x3</option>
-                    <option value="2x2">2x2</option>
-                </select><br><br>
-                <button id="connectGiiker">Connect Giiker Cube</button><br>
+                <input id="goToNextCase" type="checkbox">Don't show alg after stopping timer (press the left arrow key to view previous case)<br>
+                <input id="mirrorAllAlgs" type="checkbox">Mirror across M <input id="randomizeMMirror" type="checkbox">Randomize<br>
+                <input id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across S <input id="randomizeSMirror" type="checkbox">Randomize<br>
+
+                
 
 
-                <input id="userDefined" type="checkbox">Use user defined algset <button id="addSelected">Add
-                    currently selected algs</button><br>
-                <textarea id="userDefinedAlgs" cols=50 rows=50 style="display:none" onfocus="listener.stop_listening();"
-                    onblur="listener.listen();"
-                    placeholder="Place one alg per line. Lines starting with # will be ignored"></textarea>
-                <br>
+            </form>
+            <br>
 
-                Preorientation: <br>
+            Preorientation: <br>
 
                 <input id="fullCN" type="checkbox"> Full colour neutrality<br>
                 or<br>
                 Starting from WCA orientation: <br>
                 First do one
-                <input type="text" id="colourneutrality1" value="" onfocus="listener.stop_listening();"
-                    onblur="listener.listen();" size="1">
+                <input type="text" id="colourneutrality1" value="" size="2"> 
                 rotation<br>
 
-                then do a random number of
-                <input type="text" id="colourneutrality2" value="" onfocus="listener.stop_listening();"
-                    onblur="listener.listen();" size="1">
+                then do a random number of 
+                <input type="text" id="colourneutrality2" value="" size="2"> 
                 rotations, <br>
 
-                and finally do a random number of
-                <input type="text" id="colourneutrality3" value="" onfocus="listener.stop_listening();"
-                    onblur="listener.listen();" size="1">
+                and finally do a random number of 
+                <input type="text" id="colourneutrality3" value="" size="2"> 
                 rotations.<br>
-                <br>
-                <a href="scramblingNote.html">Note on preorientation settings</a>
+                <a href="scramblingNote.html">Note on preorientation settings</a> 
                 <br><br>
 
-
-                <input id="useCustomColourScheme" type="checkbox"><label for="useCustomColourScheme"> Use
-                    custom
-                    colour scheme:</label><br>
-                Enter colour names, or RGB values as #RRGGBB.<br>
-                <table>
-                    <tr>
-                        <td><label for="customColourU">U:</label></td>
-                        <td><input type="text" id="customColourU" value="" onfocus="listener.stop_listening();"
-                                onblur="listener.listen();" size="8">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="customColourD">D:</label></td>
-                        <td><input type="text" id="customColourD" value="" onfocus="listener.stop_listening();"
-                                onblur="listener.listen();" size="8">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="customColourF">F:</label></td>
-                        <td><input type="text" id="customColourF" value="" onfocus="listener.stop_listening();"
-                                onblur="listener.listen();" size="8">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="customColourB">B:</label></td>
-                        <td><input type="text" id="customColourB" value="" onfocus="listener.stop_listening();"
-                                onblur="listener.listen();" size="8">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="customColourR">R:</label></td>
-                        <td><input type="text" id="customColourR" value="" onfocus="listener.stop_listening();"
-                                onblur="listener.listen();" size="8">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><label for="customColourL">L:</label></td>
-                        <td><input type="text" id="customColourL" value="" onfocus="listener.stop_listening();"
-                                onblur="listener.listen();" size="8">
-                        </td>
-                    </tr>
-                </table>
-                <button id="resetCustomColourScheme" type="button">Reset</button>
-
-            </form>
-
-
+            <br>
+                <button id="connectSmartCube">Connect Smart Cube</button><br><br>
+                
+                Currently Qiyi and Moyu V10 smart cubes are supported.<br><br>
 
         </div>
     </div>
@@ -139,7 +87,7 @@
             <div id="visualcube"></div>
             <!-- <p style="font-size: small;">Click the above cube to switch between flat and 3D view</p> -->
 
-            <div style="overflow-y: scroll; height:150px;">
+            <div id="scrollTimes" style="overflow-y: scroll; height:150px;">
                 <p id="timeList" style="text-align: left">&nbsp</p>
             </div>
             <p id="statistics">&nbsp</p>
@@ -193,8 +141,8 @@
 
 
                 <div class=column_middle>
-                    <div id="simcube">
-                        <canvas id="cube" width="250" height="300"></canvas>
+                    <div id="simcube"> 
+                        <canvas id="cube" width="1200" height="1200" ></canvas>
                     </div>
 
                     <div id="timer_div">
@@ -217,10 +165,15 @@
     <script src="js/solve.js"></script>
     <script src="js/alg_jison.js"></script>
     <script src="js/alg.js"></script>
-    <script src="js/controls.js"></script>
-    <script src="js/alg_list.js"></script>
     <script src="js/visualCube.js"></script>
     <script src="js/helpers.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/alg_list.js"></script>
+    <script src="js/lzstring.js"></script>
+    <script src="js/encryption.js"></script>
+    <script src="js/isaac.js"></script>
+    <script src="js/mathlib.js"></script>
+    <script src="js/smartCube.js"></script>
     <script src="js/keymaps.js"></script>
     <script src="js/RubiksCube.js"></script>
 </body>
