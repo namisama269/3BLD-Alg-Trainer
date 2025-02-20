@@ -74,7 +74,6 @@ tr {
     padding: 0;
     width: 100%;
     height: 90%;
-    flex: 1;
 
 }
 
@@ -269,6 +268,85 @@ a:visited {
 }
 
 canvas {
-    width: 360px;
-    height: 360px;
+    width: 300px;
+    height: 300px;
 }
+
+.multiselect-container {
+    /* margin-top: 10px; */
+    display: flex;
+    flex-wrap: wrap;
+}
+.multiselect-item {
+    margin-right: 10px;
+}
+.select-label {
+    margin-bottom: 5px; 
+    display: block; 
+}
+.button {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    padding: 10px 20px;
+    background-color: #4570de;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.button-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1px; 
+}
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    text-align: center;
+}
+.cube-select-button {
+    margin: 1px;
+    padding: 5px 5px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    text-align: center;
+    color: var(--primary-color);
+}
+.textbox-container {
+    display: flex;
+    margin-top: 7px;
+    gap: 10px;
+    display: inline-block;
+}
+.textbox-container input {
+    padding: 10px;
+    font-size: 16px;
+    margin-right: 10px;
+}
+.hidden {
+    display: none;
+}
+pre {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    line-height: 1.5;
+}
+.multiselect-container {
+    /* margin-top: 10px; */
+    display: flex;
+    flex-wrap: wrap;
+}
+.multiselect-item {
+    margin-right: 10px;
+}
+
+
+.cubeSelectButtons {
+    position: absolute;  /* Position it absolutely */
+    top: 0;  
+}
+
+html, body {touch-action: none;}

@@ -227,6 +227,77 @@ connectSmartCube.addEventListener('click', async () => {
     }
 }); 
 
+
+// buttons
+
+function adjustButtonWidths() {
+    minButtonWidth = 100;
+    var buttonGrids = document.querySelectorAll('.button-grid');
+    buttonGrids.forEach(function(grid) {
+        var buttons = grid.querySelectorAll('.cube-select-button');
+        var containerWidth = window.innerWidth;
+        var packSize = buttons.length;
+        
+        var buttonWidth = Math.min(100, ((containerWidth - 2 * 20 - (packSize + 1)) / packSize)); 
+        buttonWidth = Math.max(30, buttonWidth);
+        minButtonWidth = Math.min(buttonWidth, minButtonWidth);
+
+        buttons.forEach(function(button) {
+            button.style.width = minButtonWidth + 'px';
+            button.style.height = minButtonWidth * 0.85 + 'px'; // Set height equal to width
+        });
+    });
+}
+
+window.addEventListener('resize', adjustButtonWidths); 
+
+function handleButtonClick(event) {
+    console.log("Button clicked:", event.target.textContent);
+    doAlg(event.target.textContent);
+    updateVirtualCube();
+}
+
+var numCubes = 36;
+var packSize = 9;
+var numFullPacks = Math.floor(numCubes / packSize);
+var lastPackSize = numCubes % packSize;
+
+var container = document.getElementById("cubeSelectButtons");
+
+var keypadLayout = [
+    ["b", "S'", "E", "f'", "x", "f", "E'", "S", "b"],
+    ["z'", "l'", "L'", "U'", "M'", "U", "R", "r", "z"],
+    ["y'", "l", "L", "F'", "M", "F", "R'", "r'", "y"],
+    ["d", "B", "u'", "D", "x'", "D'", "u", "B'", "d'"]
+]
+
+// for (let i = 0; i <= numFullPacks; ++i) {
+//     var cubeContainer = document.createElement('div');
+//     cubeContainer.className = 'cube-container';
+
+//     // Create a grid container for buttons
+//     var buttonGrid = document.createElement('div');
+//     buttonGrid.className = 'button-grid';
+
+//     // Create packSize number of buttons inside the button grid
+//     for (var j = 1; j <= (i === numFullPacks ? lastPackSize : packSize); ++j) {
+//         var button = document.createElement('button');
+//         button.textContent = keypadLayout[i][j-1];
+//         button.className = 'cube-select-button';
+//         button.id = 'container-' + i + '-button-' + j;
+//         button.addEventListener("click", handleButtonClick);
+
+//         buttonGrid.appendChild(button);
+//     }
+
+//     cubeContainer.appendChild(buttonGrid);
+//     container.appendChild(cubeContainer);
+// }
+
+// adjustButtonWidths();
+
+
+
 //////////////////////////////////////////////////////////////
 
 document.getElementById("loader").style.display = "none";
@@ -467,6 +538,7 @@ function getRotationMap(moves) {
     let rotationMap = {};
 
     let rotationCube = new RubiksCube();
+    console.log('moves: ', moves);
     rotationCube.doAlgorithm(moves);
     // let rotationCubeString = rotationCube.toString();
     // console.log(rotationCubeString);
@@ -1109,7 +1181,8 @@ function findMistakesInUserAlgs(userAlgs){
             newListDisplay.push(userAlgs[i]);
             continue;
         }
-        userAlgs[i] = userAlgs[i].replace(/[\u2018\u0060\u2019\u00B4]/g, "'"); 
+        userAlgs[i] = userAlgs[i].replace(/[\u2018\u0060\u2019\u00B4]/g, "'");  
+        userAlgs[i] = userAlgs[i].replace(/"/g, "");  
         //replace astrophe like characters with '
         if (!isCommutator(userAlgs[i])) {
             try {
