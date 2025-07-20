@@ -25,8 +25,7 @@
 
             <h2>Settings</h2>
 
-            <form action="javascript:void(0);">     
-                
+            <form style="margin-bottom: 20px;" action="javascript:void(0);">     
                 <div>
                     Holding cube at <input type="text" id="holdingOrientation" value="" size="4"> rotation away from WCA orientation<br>
                 </div>    
@@ -38,6 +37,11 @@
                     Final mask: <br>
                     <input id="finalMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
                 </div>
+            </form>
+
+            <div style="height: 20px;"></div>
+
+            <form action="javascript:void(0);">      
                 <input id="useVirtual" type="checkbox">Use Virtual Cube<br>
                 <input id="hideTimer" type="checkbox">Hide timer<br>
                 <input id="includeRecognitionTime" type="checkbox">Include recognition time<br>
@@ -49,12 +53,7 @@
                 <input id="goToNextCase" type="checkbox">Don't show alg after stopping timer (press the left arrow key to view previous case)<br>
                 <input id="mirrorAllAlgs" type="checkbox">Mirror across M <input id="randomizeMMirror" type="checkbox">Randomize<br>
                 <input id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across S <input id="randomizeSMirror" type="checkbox">Randomize<br>
-
-                
-
-
             </form>
-            <br>
 
             Preorientation: <br>
 
@@ -126,6 +125,12 @@
                 <button id="left_popup_button" class="sidebar_button">Settings</button>
                 <p></p>
                 <button id="right_popup_button" class="sidebar_button">Times</button>
+            </div>
+
+            <div class="on_screen_controls">
+                <button id="addAlgBtn" class="big_button flex-item">Add Alg</button>
+                <button id="removeAlgBtn" class="big_button flex-item">Remove Alg</button>
+                <button class="big_button flex-item" onclick="nextScramble()">Reset Case</button>
             </div>
 
             <div class="on_screen_controls">

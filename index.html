@@ -24,10 +24,7 @@
                 <h2>Settings</h2>
 
                 <form action="javascript:void(0);">     
-                    
-                    <div>
-                        Holding cube at <input type="text" id="holdingOrientation" value="" size="4"> rotation away from WCA orientation<br>
-                    </div>    
+
                     <div>
                         Initial mask: <br>
                         <input id="initialMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
@@ -36,6 +33,14 @@
                         Final mask: <br>
                         <input id="finalMask" size="51" maxlength="54" placeholder="Enter a string of 54 characters all 'x' or '.'"><br>
                     </div>
+                    <a href="cubeMasks.html">How to use cube masks</a> 
+                    <br>
+                    <a href="cubeMaskPresets.html">Presets</a> 
+                </form>
+
+                <br>
+
+                <form action="javascript:void(0);">     
                     <input id="useVirtual" type="checkbox">Use Virtual Cube<br>
                     <input id="hideTimer" type="checkbox">Hide timer<br>
                     <input id="includeRecognitionTime" type="checkbox">Include recognition time<br>
@@ -47,10 +52,6 @@
                     <input id="goToNextCase" type="checkbox">Don't show alg after stopping timer (press the left arrow key to view previous case)<br>
                     <input id="mirrorAllAlgs" type="checkbox">Mirror across M <input id="randomizeMMirror" type="checkbox">Randomize<br>
                     <input id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across S <input id="randomizeSMirror" type="checkbox">Randomize<br>
-
-                    
-
-
                 </form>
                 <br>
 
@@ -74,7 +75,7 @@
                     <br><br>
 
                 <br>
-                    <button id="connectSmartCube">Connect Smart Cube</button><br><br>
+                    <button class="big_button" id="connectSmartCube">Connect Smart Cube</button><br><br>
                     
                     Currently Qiyi and Moyu V10 smart cubes are supported.<br><br>
 
@@ -95,9 +96,24 @@
                     <p id="algdisp" class=algdisp>Solution</p>
                 </div>
 
-                <div id="controls">
+                <!-- <div id="controls">
                     <button name="nextScrambleButton">Next Scramble</button>
                     <button name="showSolutionButton">Show Solution</button>
+                </div> -->
+
+                <div id="flexbox">
+                    <div class="on_screen_controls">
+                        <button id="addAlgBtn" class="big_button flex-item">Add Alg</button>
+                        <button id="removeAlgBtn" class="big_button flex-item">Remove Alg</button>
+                        <button class="big_button flex-item" onclick="nextScramble()">Reset Case</button>
+                    </div>
+        
+                    <div class="on_screen_controls">
+                        <button id="onscreenLeft" class="big_button arrow_button">&lt</button>
+                        <button class="big_button flex-item" onclick="displayAlgorithmForPreviousTest()">Show Solution</button>
+                        <button class="big_button flex-item" onclick="nextScramble()">Next Scramble</button>
+                        <button id="onscreenRight" class="big_button arrow_button">&gt</button>
+                    </div>
                 </div>
             </div>
 
@@ -114,8 +130,8 @@
 
 
                 <div style="text-align: left">
-                    <button id="deleteLast">Delete last solve</button>
-                    <button id="clearTimes">Clear all</button>
+                    <button class="big_button" id="deleteLast">Delete last solve</button>
+                    <button class="big_button" id="clearTimes">Clear all</button>
                     <br><br>
                     <table id="algsetStatistics">
                     </table>

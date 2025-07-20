@@ -237,7 +237,7 @@ a:visited {
 }
 
 .arrow_button {
-    flex: 1;
+    flex: 0.5;
     padding: 10px;
 }
 
@@ -263,9 +263,10 @@ a:visited {
 }
 
 .flex-item {
-    flex: 2;
+    flex: 1;
     padding: 10px;
 }
+
 
 canvas {
     width: 300px;

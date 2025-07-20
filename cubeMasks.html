@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Cube Masks</title>
+        <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+        <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
+
+<body>
+<div style="width:40%">
+
+The cube string is a 54 character string that encodes the state of a 3x3 cube.<br><br>
+There are 9 characters for each face, following the order URFDLB, and within a face following the diagram below.<br>
+
+<pre>
+             +------------+
+             | U1  U2  U3 |
+             |            |
+             | U4  U5  U6 |
+             |            |
+             | U7  U8  U9 |
++------------+------------+------------+------------+
+| L1  L2  L3 | F1  F2  F3 | R1  R2  R3 | B1  B2  B3 |
+|            |            |            |            |
+| L4  L5  L6 | F4  F5  F6 | R4  R5  R6 | B4  B5  B6 |
+|            |            |            |            |
+| L7  L8  L9 | F7  F8  F9 | R7  R8  R9 | B7  B8  B9 |
++------------+------------+------------+------------+
+             | D1  D2  D3 |
+             |            |
+             | D4  D5  D6 |
+             |            |
+             | D7  D8  D9 |
+             +------------+
+</pre>
+
+A mask is a 54 character string of only 'x' and '.', where 'x' is a sticker that will be greyed out 
+and '.' is a sticker that will be kept unchanged.
+<br><br>
+
+Initial masks are applied to the initial solved cube before it is scrambled, like removing the stickers on a physical cube.
+<br>
+The grey stickers can be moved.
+<br>
+They can be used to train a substep. e.g. removing all of the side top layer stickers to train OLL, 
+or removing all top layer stickers except the top cross to train ZBLS.
+<br><br>
+
+Final masks are applied to the cube that is already scrambled into a training case. 
+<br>
+The grey stickers cannot be moved.
+<br>
+They can be used to block vision of parts of the cube in order to practice limited side recognition
+such as 2-sided PLL recognition.<br><br>
+
+<a href="https://www.programiz.com/online-compiler/9i7XWu48wPQSG" target="_blank">
+Program to generate the mask string from a list of stickers
+</a>
+
+</div>
+</body>
+</html>

@@ -153,6 +153,55 @@ a:visited {
   font-size: 18px;
 }
 
+.big_button {
+  background-color: #4570de; 
+  border: none;
+  color: white;
+  margin: 3px;
+  font-size: 18px;
+  padding: 10px;
+}
+
+.arrow_button {
+  flex: 1;
+  padding: 10px;
+}
+
+
+.on_screen_controls {
+  flex: 0.05;
+  display: flex;
+
+}
+
+.sidebar_buttons {
+  flex: 0.025;
+  display: flex;
+}
+
+.sidebar_button {
+  flex: 1;
+  margin: 3px;
+  background-color: #4570de; 
+  color: white;
+  border: none;
+  font-size: 18px;
+  padding: 10px;
+}
+
+#flexbox {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* gap: 10px; */
+  padding: 10px;
+  box-sizing: border-box;
+}
+
 canvas {
   width: 360px;
   height: 360px;
@@ -198,4 +247,27 @@ form input, form label, form button {
   padding: 10px;
   font-size: 16px;
   cursor: pointer;
+}
+
+pre {
+  font-family: 'Consolas', 'Menlo', monospace;
+  white-space: pre;
+}
+
+.maskPreset {
+  border-collapse: collapse;
+  width: auto;
+}
+
+.maskPreset td {
+  border: 1px solid #000;
+  padding: 8px;
+}
+
+.maskPreset td:nth-child(2) {
+  width: 54ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'Consolas', 'Menlo', monospace;
 }

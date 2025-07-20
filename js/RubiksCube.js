@@ -18,18 +18,9 @@ var shouldRecalculateStatistics = true;
 
 Cube.initSolver();
 
-const holdingOrientation = document.getElementById('holdingOrientation');
 let currentPreorientation = "";
 
 document.addEventListener("DOMContentLoaded", function() {
-    const savedValue = localStorage.getItem('holdingOrientation');
-    if (savedValue !== null) {
-        holdingOrientation.value = savedValue;
-    }
-    holdingOrientation.addEventListener('input', function() {
-        localStorage.setItem('holdingOrientation', holdingOrientation.value);
-    });
-
     cube.resetCube();
     updateVirtualCube();
 });
@@ -183,11 +174,7 @@ function applyMoves(moves) {
     cube.doAlgorithm(
         startingRotation 
         + " " + 
-        alg.cube.invert(holdingOrientation.value)
-        + " " +  
         moves 
-        + " " + 
-        holdingOrientation.value
         + " " + 
         alg.cube.invert(startingRotation) 
         + " " +  
@@ -234,73 +221,6 @@ connectSmartCube.addEventListener('click', async () => {
 }); 
 
 
-// buttons
-
-function adjustButtonWidths() {
-    minButtonWidth = 100;
-    var buttonGrids = document.querySelectorAll('.button-grid');
-    buttonGrids.forEach(function(grid) {
-        var buttons = grid.querySelectorAll('.cube-select-button');
-        var containerWidth = window.innerWidth;
-        var packSize = buttons.length;
-        
-        var buttonWidth = Math.min(100, ((containerWidth - 2 * 20 - (packSize + 1)) / packSize)); 
-        buttonWidth = Math.max(30, buttonWidth);
-        minButtonWidth = Math.min(buttonWidth, minButtonWidth);
-
-        buttons.forEach(function(button) {
-            button.style.width = minButtonWidth + 'px';
-            button.style.height = minButtonWidth * 0.85 + 'px'; // Set height equal to width
-        });
-    });
-}
-
-window.addEventListener('resize', adjustButtonWidths); 
-
-function handleButtonClick(event) {
-    console.log("Button clicked:", event.target.textContent);
-    doAlg(event.target.textContent);
-    updateVirtualCube();
-}
-
-var numCubes = 36;
-var packSize = 9;
-var numFullPacks = Math.floor(numCubes / packSize);
-var lastPackSize = numCubes % packSize;
-
-var container = document.getElementById("cubeSelectButtons");
-
-var keypadLayout = [
-    ["b", "S'", "E", "f'", "x", "f", "E'", "S", "b"],
-    ["z'", "l'", "L'", "U'", "M'", "U", "R", "r", "z"],
-    ["y'", "l", "L", "F'", "M", "F", "R'", "r'", "y"],
-    ["d", "B", "u'", "D", "x'", "D'", "u", "B'", "d'"]
-]
-
-// for (let i = 0; i <= numFullPacks; ++i) {
-//     var cubeContainer = document.createElement('div');
-//     cubeContainer.className = 'cube-container';
-
-//     // Create a grid container for buttons
-//     var buttonGrid = document.createElement('div');
-//     buttonGrid.className = 'button-grid';
-
-//     // Create packSize number of buttons inside the button grid
-//     for (var j = 1; j <= (i === numFullPacks ? lastPackSize : packSize); ++j) {
-//         var button = document.createElement('button');
-//         button.textContent = keypadLayout[i][j-1];
-//         button.className = 'cube-select-button';
-//         button.id = 'container-' + i + '-button-' + j;
-//         button.addEventListener("click", handleButtonClick);
-
-//         buttonGrid.appendChild(button);
-//     }
-
-//     cubeContainer.appendChild(buttonGrid);
-//     container.appendChild(cubeContainer);
-// }
-
-// adjustButtonWidths();
 
 
 
@@ -557,7 +477,7 @@ function getRotationMap(moves) {
     return rotationMap;
 }
 
-function updateVirtualCube(initialRotations = holdingOrientation.value + ' ' + currentPreorientation) {
+function updateVirtualCube(initialRotations = currentPreorientation) {
     console.log("preorientation: ", currentPreorientation);
     vc.cubeString = cube.toString();
     let initialMaskedCubeString = cube.toInitialMaskedString(initialMask.value);
@@ -850,7 +770,7 @@ function testAlg(algTest, addToHistory=true){
         algorithmHistory.push(algTest);
     }
     console.log(algTest);
-
+    // console.log(algorithmHistory[historyIndex+1]);
 }
 
 function updateAlgsetStatistics(algList){
@@ -951,7 +871,6 @@ function stripLeadingHashtag(colour){
     return colour;
 }
 
-
 function displayAlgorithm(algTest, reTest=true){    
     //If reTest is true, the scramble will also be setup on the virtual cube
     if (reTest){
@@ -984,11 +903,14 @@ function displayAlgorithmFromHistory(index){
     );
 
     scramble.style.color = '#e6e6e6';
+
+    updateVirtualCube("");
 }
 
 function displayAlgorithmForPreviousTest(reTest=true){//not a great name
 
     var lastTest = algorithmHistory[algorithmHistory.length-1];
+    console.log(lastTest);
     if (lastTest==undefined){
         return;
     }
@@ -1227,6 +1149,51 @@ function createAlgList(){
     return algList;
 }
 
+function removeAlgFromList(algList, alg) {
+    algList = fixAlgorithms(algList);
+    var updatedList = algList.filter(item => item !== alg);
+    return updatedList;
+}
+
+document.getElementById("removeAlgBtn").addEventListener("click", () => {
+    const algToRemove = algorithmHistory[historyIndex].rawAlgs[0];
+    console.log("algToRemove", algToRemove);
+
+    if (!algToRemove) {
+        console.warn("No algorithm to remove.");
+        return;
+    }
+
+    algList = removeAlgFromList(algList, algToRemove);
+    console.log("Updated list:", algList);
+    const textarea = document.getElementById("userDefinedAlgs");
+    textarea.value = algList.join('\n');
+});
+
+function addAlgToList(algList, alg) {
+    algList = fixAlgorithms(algList); 
+    if (!algList.includes(alg)) {
+        return [...algList, alg];
+    }
+    return algList;
+}
+
+document.getElementById("addAlgBtn").addEventListener("click", () => {
+    const algToAdd = algorithmHistory[historyIndex].rawAlgs[0];
+    console.log("algToAdd", algToAdd);
+
+    if (!algToAdd) {
+        console.warn("No algorithm to add.");
+        return;
+    }
+
+    algList = addAlgToList(algList, algToAdd);
+    console.log("Updated list:", algList);
+
+    const textarea = document.getElementById("userDefinedAlgs");
+    textarea.value = algList.join('\n');
+});
+
 function mirrorAlgsAcrossAxis(algList, axis="M"){
     algList = fixAlgorithms(algList);
     if (axis=="M"){
@@ -1339,6 +1306,7 @@ function nextScramble(displayReady=true){
 
 
 function handleLeftButton() {
+    console.log("hello")
     if (algorithmHistory.length<=1 || timerIsRunning){
         return;
     }
@@ -1365,11 +1333,20 @@ function handleRightButton() {
     displayAlgorithmFromHistory(historyIndex);
 }
 
-try { //only for mobile
+try {
 document.getElementById("onscreenLeft").addEventListener("click", handleLeftButton);
 document.getElementById("onscreenRight").addEventListener("click", handleRightButton);
 } catch (error) {
 
+}
+
+function resetCase() {
+    if (isUsingVirtualCube()){
+        stopTimer(false);
+    }
+    reTestAlg();
+    document.getElementById("scramble").innerHTML = "&nbsp;";
+    document.getElementById("algdisp").innerHTML = "";
 }
 
 function updateControls() {
@@ -1384,17 +1361,14 @@ function updateControls() {
     listener.reset();
 
     keymaps.forEach(function(keymap){
-        listener.register(keymap[0], function() {  doAlg(keymap[1], true) });
+        listener.register(keymap[0], function() {  
+            doAlg(keymap[1], true);
+            updateVirtualCube();
+        
+        });
     });
     listener.register(new KeyCombo("Backspace"), function() { displayAlgorithmForPreviousTest();});
-    listener.register(new KeyCombo("Escape"), function() {
-        if (isUsingVirtualCube()){
-            stopTimer(false);
-        }
-        reTestAlg();
-        document.getElementById("scramble").innerHTML = "&nbsp;";
-        document.getElementById("algdisp").innerHTML = "";
-    });
+    listener.register(new KeyCombo("Escape"), function() { resetCase() });
     listener.register(new KeyCombo("Enter"), function() {
         nextScramble();
         doNothingNextTimeSpaceIsPressed = false;
