@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Alg Trainer · Material Design</title>
+        <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="style-material-m3.css">
+    </head>
+    <body>
+
+        <div id="loader"></div>
+        <div id="page" class="animate-bottom d-none">
+            <div class="m3-container">
+                <!-- Scramble bar at top -->
+                <div class="m3-scramble-bar">
+                    <p id="scramble">Scramble</p>
+                </div>
+
+                <div class="m3-grid">
+                    <div class="m3-left-panel">
+                        <md-outlined-button class="m3-w-full m3-mb-2" id="toggleAlgEditor">
+                            Toggle Alg Editor
+                        </md-outlined-button>
+
+                        <div class="m3-collapse-content" id="algEditorCollapse" aria-hidden="false">
+                            <!-- Input Mode Selector -->
+                            <div class="m3-mb-2">
+                                <md-filled-select id="algInputMode" class="m3-w-full">
+                                    <md-select-option value="custom"><div slot="headline">Custom (one alg per line)</div></md-select-option>
+                                    <md-select-option value="generator"><div slot="headline">Generator (bracket syntax)</div></md-select-option>
+                                </md-filled-select>
+                            </div>
+
+                            <!-- Custom Mode: Multi-line textarea -->
+                            <div id="customModeContainer">
+                                <p class="m3-body-small m3-mb-1">Use # for subset headers, // for comments.</p>
+                                <md-filled-text-field id="userDefinedAlgs" type="textarea" rows="12" class="m3-mb-2" placeholder="# Subset Name&#10;R U R' U'&#10;// comment"></md-filled-text-field>
+                                <div class="m3-button-row m3-mb-2">
+                                    <md-outlined-button id="updateSetsBtn">Update Sets</md-outlined-button>
+                                    <md-outlined-button id="presetsBtn">Presets</md-outlined-button>
+                                </div>
+                                <div id="subsetCheckboxes" class="m3-mb-3"></div>
+                                <table id="algsetStatistics" class="m3-mb-3"></table>
+                            </div>
+
+                            <!-- Generator Mode: Single input with wrapping -->
+                            <div id="generatorModeContainer" style="display: none;">
+                                <p class="m3-body-small m3-mb-1">
+                                    Use &lt;alg1, alg2&gt; for generators, [alg1, alg2] for alternatives.
+                                </p>
+                                <md-filled-text-field id="generatorInput" type="textarea" rows="4" class="m3-mb-2"
+                                    style="--md-filled-text-field-input-text-font: monospace;"
+                                    placeholder="<R U R' U R U2 R', U> [sune, antisune]"></md-filled-text-field>
+                                <div class="m3-flex m3-gap-2 m3-mb-2">
+                                    <md-filled-button id="generateBtn">Generate</md-filled-button>
+                                    <span class="m3-body-small" id="generatorCaseCount"></span>
+                                </div>
+                                <p id="generatorStatus" class="m3-body-small m3-mb-3"></p>
+                            </div>
+                        </div>
+
+                        <div class="m3-flex m3-gap-2 m3-mb-3">
+                            <label class="m3-body-small" for="algOrder" style="white-space: nowrap;">Case order:</label>
+                            <md-filled-select id="algOrder" style="min-width: 140px;">
+                                <md-select-option value="random" selected><div slot="headline">Random</div></md-select-option>
+                                <md-select-option value="inOrder"><div slot="headline">In order</div></md-select-option>
+                                <md-select-option value="shuffled"><div slot="headline">Shuffled</div></md-select-option>
+                            </md-filled-select>
+                            <span id="algProgress" class="m3-body-small" style="display: none;"></span>
+                        </div>
+
+                        <md-outlined-button class="m3-w-full m3-mb-3" id="openSettingsBtn">
+                            Settings
+                        </md-outlined-button>
+
+                        <md-outlined-button class="m3-w-full" id="openHelpBtn">
+                            Help
+                        </md-outlined-button>
+                    </div>
+
+                    <div class="m3-right-panel">
+                        <div class="m3-surface-elevated m3-mb-4">
+                            <div class="m3-text-center" style="display: flex; flex-direction: column;">
+                                <div id="simcube">
+                                    <canvas id="cube" width="1200" height="1200" style="max-width: 100%; height: auto;"></canvas>
+                                </div>
+                                <div id="timer_div">
+                                    <p id="timer">0.00</p>
+                                </div>
+                                <div id="algdisplayer">
+                                    <p id="algdisp">Solution</p>
+                                </div>
+                                <div>
+                                    <div class="m3-button-row m3-mb-2">
+                                        <md-outlined-button id="addAlgBtn">Add Alg</md-outlined-button>
+                                        <md-outlined-button id="removeAlgBtn">Remove Alg</md-outlined-button>
+                                        <md-outlined-button onclick="resetCase()">Reset Case</md-outlined-button>
+                                    </div>
+                                    <div class="m3-button-row" style="grid-template-columns: 1fr 2fr 2fr 1fr; display: grid; gap: 8px;">
+                                        <md-outlined-button id="onscreenLeft">&lt;</md-outlined-button>
+                                        <md-filled-button onclick="displayAlgorithmForPreviousTest()">Show Solution</md-filled-button>
+                                        <md-filled-button onclick="nextScramble()">Next Scramble</md-filled-button>
+                                        <md-outlined-button id="onscreenRight">&gt;</md-outlined-button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="m3-surface-elevated m3-mb-3">
+                            <div class="m3-section-header" style="margin: -16px -16px 16px -16px;">Performance</div>
+                            <div class="m3-mb-3">
+                                <div id="scrollTimes">
+                                    <p id="timeList">&nbsp;</p>
+                                </div>
+                            </div>
+                            <p id="statistics">&nbsp;</p>
+                            <div class="m3-button-row">
+                                <md-outlined-button class="m3-danger" id="deleteLast">Delete last</md-outlined-button>
+                                <md-outlined-button class="m3-danger" id="clearTimes">Clear all</md-outlined-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- M3 Component Imports -->
+        <script type="importmap">
+            {
+                "imports": {
+                    "@material/web/": "https://esm.run/@material/web/"
+                }
+            }
+        </script>
+        <script type="module">
+            import '@material/web/all.js';
+            import {styles as typescaleStyles} from '@material/web/typography/md-typescale-styles.js';
+            document.adoptedStyleSheets.push(typescaleStyles.styleSheet);
+        </script>
+
+        <!-- Bootstrap API Shim — maps existing JS calls to M3 dialog API -->
+        <script>
+            window.bootstrap = {
+                Modal: class {
+                    constructor(el) {
+                        this.el = typeof el === 'string' ? document.querySelector(el) : el;
+                    }
+                    static getInstance(el) {
+                        const element = typeof el === 'string' ? document.querySelector(el) : el;
+                        return new this(element);
+                    }
+                    show() { if (this.el) this.el.show(); }
+                    hide() { if (this.el) this.el.close(); }
+                }
+            };
+        </script>
+
+        <!-- Switch .checked shim — md-switch uses .selected, existing JS uses .checked -->
+        <script>
+            // md-checkbox already supports .checked natively
+            // md-switch uses .selected — shim .checked onto it for compatibility
+            customElements.whenDefined('md-switch').then(() => {
+                const proto = customElements.get('md-switch').prototype;
+                const desc = Object.getOwnPropertyDescriptor(proto, 'checked');
+                if (!desc) {
+                    Object.defineProperty(proto, 'checked', {
+                        get() { return this.selected; },
+                        set(v) { this.selected = v; },
+                        configurable: true,
+                        enumerable: true
+                    });
+                }
+            });
+
+            // Shim md-dialog 'show.bs.modal' event → 'open' event
+            customElements.whenDefined('md-dialog').then(() => {
+                const origShow = customElements.get('md-dialog').prototype.show;
+                customElements.get('md-dialog').prototype.show = function() {
+                    this.dispatchEvent(new Event('show.bs.modal'));
+                    return origShow.call(this);
+                };
+            });
+        </script>
+
+        <!-- Theme toggle -->
+        <script>
+            (function () {
+                const THEME_KEY = "algTrainerTheme";
+                const root = document.documentElement;
+                const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+                const storedTheme = localStorage.getItem(THEME_KEY);
+                const prefersDark = mediaQuery.matches;
+                const initialTheme = storedTheme || (prefersDark ? "dark" : "light");
+
+                function applyTheme(theme) {
+                    if (theme === "dark") {
+                        root.classList.add("dark-theme");
+                    } else {
+                        root.classList.remove("dark-theme");
+                    }
+                    const toggle = document.getElementById("themeToggle");
+                    if (toggle) {
+                        toggle.selected = theme === "dark";
+                    }
+                }
+
+                applyTheme(initialTheme);
+
+                document.addEventListener("DOMContentLoaded", function() {
+                    const toggle = document.getElementById("themeToggle");
+                    if (toggle) {
+                        toggle.selected = root.classList.contains("dark-theme");
+                        toggle.addEventListener("change", () => {
+                            const theme = toggle.selected ? "dark" : "light";
+                            applyTheme(theme);
+                            localStorage.setItem(THEME_KEY, theme);
+                        });
+                    }
+                });
+
+                const handleSchemeChange = (event) => {
+                    if (!localStorage.getItem(THEME_KEY)) {
+                        applyTheme(event.matches ? "dark" : "light");
+                    }
+                };
+
+                if (mediaQuery.addEventListener) {
+                    mediaQuery.addEventListener("change", handleSchemeChange);
+                } else if (mediaQuery.addListener) {
+                    mediaQuery.addListener(handleSchemeChange);
+                }
+            })();
+        </script>
+
+        <!-- Collapse toggle -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const COLLAPSE_KEY = 'algTrainerCollapseState';
+
+                function loadState() {
+                    try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch(e) { return {}; }
+                }
+                function saveState(states) {
+                    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(states));
+                }
+
+                // Alg editor collapse
+                const toggleBtn = document.getElementById('toggleAlgEditor');
+                const collapseEl = document.getElementById('algEditorCollapse');
+                if (toggleBtn && collapseEl) {
+                    const states = loadState();
+                    if (states.algEditorCollapse === false) {
+                        collapseEl.setAttribute('aria-hidden', 'true');
+                    }
+                    toggleBtn.addEventListener('click', function() {
+                        const isHidden = collapseEl.getAttribute('aria-hidden') === 'true';
+                        collapseEl.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+                        const s = loadState();
+                        s.algEditorCollapse = isHidden;
+                        saveState(s);
+                    });
+                }
+
+                // Dialog open buttons
+                document.getElementById('openSettingsBtn')?.addEventListener('click', () => {
+                    document.getElementById('settingsModal')?.show();
+                });
+                document.getElementById('openHelpBtn')?.addEventListener('click', () => {
+                    document.getElementById('helpModal')?.show();
+                });
+                document.getElementById('presetsBtn')?.addEventListener('click', () => {
+                    document.getElementById('presetsModal')?.show();
+                });
+
+                // Tabs switching
+                const tabs = document.getElementById('settingsTabs');
+                const panels = document.querySelectorAll('.m3-tab-panel');
+                if (tabs) {
+                    tabs.addEventListener('change', (e) => {
+                        const idx = tabs.activeTabIndex;
+                        panels.forEach((p, i) => {
+                            p.classList.toggle('active', i === idx);
+                        });
+                    });
+                }
+            });
+        </script>
+
+        <!-- External libraries -->
+        <script src="js/cube.js"></script>
+        <script src="js/solve.js"></script>
+        <script src="js/alg_jison.js"></script>
+        <script src="js/alg.js"></script>
+        <script src="js/lzstring.js"></script>
+        <script src="js/encryption.js"></script>
+        <script src="js/isaac.js"></script>
+        <script src="js/mathlib.js"></script>
+
+        <!-- Helper utilities -->
+        <script src="js/helpers.js"></script>
+        <script src="js/controls.js"></script>
+
+        <!-- Core modules -->
+        <script src="js/core/CubeState.js"></script>
+        <script src="js/core/AlgorithmUtils.js"></script>
+
+        <!-- Visual cube -->
+        <script src="js/visualCube.js"></script>
+
+        <!-- Trainer modules -->
+        <script src="js/trainer/TimerModule.js"></script>
+        <script src="js/trainer/AlgorithmList.js"></script>
+        <script src="js/trainer/GeneratorParser.js"></script>
+        <script src="js/trainer/TrainerCore.js"></script>
+        <script src="js/trainer/PresetsManager.js"></script>
+
+        <!-- UI modules -->
+        <script src="js/ui/SettingsManager.js"></script>
+        <script src="js/ui/UIController.js"></script>
+        <script src="js/ui/VisualCubeController.js"></script>
+
+        <!-- Input handling -->
+        <script src="js/keymaps.js"></script>
+        <script src="js/input/KeyboardController.js"></script>
+
+        <!-- Smart cube (optional) -->
+        <script src="js/smartCube.js"></script>
+        <script src="js/input/SmartCubeModule.js"></script>
+
+        <!-- Settings UI -->
+        <script src="js/visualCubeSettings.js"></script>
+
+        <!-- Main entry point -->
+        <script src="js/main.js"></script>
+
+        <!-- Settings Modal (Tabbed) -->
+        <md-dialog id="settingsModal">
+            <div slot="headline">Settings</div>
+            <form slot="content" method="dialog">
+                <!-- Tabs -->
+                <md-tabs id="settingsTabs">
+                    <md-primary-tab>Trainer</md-primary-tab>
+                    <md-primary-tab>Masks</md-primary-tab>
+                    <md-primary-tab>Preorientation</md-primary-tab>
+                    <md-primary-tab>Cube Visual</md-primary-tab>
+                    <md-primary-tab>Smart Cube</md-primary-tab>
+                </md-tabs>
+
+                <!-- Tab Panels -->
+
+                <!-- Trainer Options Tab -->
+                <div class="m3-tab-panel active" id="panel-trainer">
+                    <div class="m3-settings-grid">
+                        <div class="m3-switch-row"><md-switch id="themeToggle"></md-switch><label for="themeToggle">Dark mode</label></div>
+                        <div class="m3-check-row"><md-checkbox id="useVirtual"></md-checkbox><label for="useVirtual">Use Virtual Cube</label></div>
+                        <div class="m3-check-row"><md-checkbox id="hideTimer"></md-checkbox><label for="hideTimer">Hide timer</label></div>
+                        <div class="m3-check-row"><md-checkbox id="includeRecognitionTime"></md-checkbox><label for="includeRecognitionTime">Include recognition time</label></div>
+                        <div class="m3-check-row"><md-checkbox id="showScramble"></md-checkbox><label for="showScramble">Show scramble</label></div>
+                        <div class="m3-check-row"><md-checkbox id="realScrambles"></md-checkbox><label for="realScrambles">Use real scrambles</label></div>
+                        <div class="m3-check-row"><md-checkbox id="randAUF"></md-checkbox><label for="randAUF">Random AUF</label></div>
+                        <div class="m3-check-row"><md-checkbox id="prescramble" checked></md-checkbox><label for="prescramble">Scramble subsequent steps</label></div>
+                        <div class="m3-check-row"><md-checkbox id="goToNextCase"></md-checkbox><label for="goToNextCase">Don't show alg after stopping timer</label></div>
+                        <div class="m3-check-row"><md-checkbox id="autoAddInverses"></md-checkbox><label for="autoAddInverses">Auto add inverses</label></div>
+                    </div>
+                    <hr class="m3-divider">
+                    <div class="m3-settings-grid">
+                        <div class="m3-flex" style="justify-content: space-between;">
+                            <span class="m3-check-row"><md-checkbox id="mirrorAllAlgs"></md-checkbox><label for="mirrorAllAlgs">Mirror across M</label></span>
+                            <span class="m3-check-row"><md-checkbox id="randomizeMMirror"></md-checkbox><label for="randomizeMMirror">Randomize</label></span>
+                        </div>
+                        <div class="m3-flex" style="justify-content: space-between;">
+                            <span class="m3-check-row"><md-checkbox id="mirrorAllAlgsAcrossS"></md-checkbox><label for="mirrorAllAlgsAcrossS">Mirror across S</label></span>
+                            <span class="m3-check-row"><md-checkbox id="randomizeSMirror"></md-checkbox><label for="randomizeSMirror">Randomize</label></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Masks Tab -->
+                <div class="m3-tab-panel" id="panel-masks">
+                    <div class="m3-check-row m3-mb-3">
+                        <md-checkbox id="useMask" checked></md-checkbox>
+                        <label for="useMask">Enable masks</label>
+                    </div>
+                    <div class="m3-mb-3">
+                        <label class="m3-label" for="initialMask">Initial mask</label>
+                        <input id="initialMask" maxlength="54" class="m3-input" type="text" placeholder="Enter a 54 character mask">
+                    </div>
+                    <div class="m3-mb-3">
+                        <label class="m3-label" for="finalMask">Final mask</label>
+                        <input id="finalMask" maxlength="54" class="m3-input" type="text" placeholder="Enter a 54 character mask">
+                    </div>
+                    <div class="m3-body-small" style="display: flex; gap: 16px;">
+                        <a href="cubeMasks.html">How to use cube masks</a>
+                        <a href="cubeMaskPresets.html">Presets</a>
+                    </div>
+                </div>
+
+                <!-- Preorientation Tab -->
+                <div class="m3-tab-panel" id="panel-preorientation">
+                    <div class="m3-check-row m3-mb-3">
+                        <md-checkbox id="fullCN"></md-checkbox>
+                        <label for="fullCN">Full colour neutrality</label>
+                    </div>
+                    <p class="m3-body-small m3-mb-2">Or configure rotations from WCA orientation:</p>
+                    <div class="m3-col-3">
+                        <div>
+                            <label class="m3-label" for="colourneutrality1">First rotation</label>
+                            <input type="text" id="colourneutrality1" value="" class="m3-input">
+                        </div>
+                        <div>
+                            <label class="m3-label" for="colourneutrality2">Random rotations</label>
+                            <input type="text" id="colourneutrality2" value="" class="m3-input">
+                        </div>
+                        <div>
+                            <label class="m3-label" for="colourneutrality3">Final rotations</label>
+                            <input type="text" id="colourneutrality3" value="" class="m3-input">
+                        </div>
+                    </div>
+                    <a class="m3-body-small m3-mt-3" style="display: block;" href="scramblingNote.html">Note on preorientation settings</a>
+                </div>
+
+                <!-- Cube Visual Tab -->
+                <div class="m3-tab-panel" id="panel-cube">
+                    <!-- Preset selector -->
+                    <div class="m3-flex m3-gap-2 m3-mb-3 m3-flex-wrap">
+                        <label class="m3-label" for="cubePreset" style="margin-bottom: 0;">Preset:</label>
+                        <select id="cubePreset" class="m3-select">
+                            <optgroup label="Built-in">
+                                <option value="default">Default</option>
+                            </optgroup>
+                            <optgroup label="Custom" id="customPresetsGroup">
+                            </optgroup>
+                        </select>
+                        <md-outlined-button id="savePresetBtn">Save As...</md-outlined-button>
+                        <md-outlined-button class="m3-danger" id="deletePresetBtn" style="display: none;">Delete</md-outlined-button>
+                    </div>
+                    <hr class="m3-divider">
+                    <div class="m3-col-2">
+                        <div>
+                            <div class="m3-check-row m3-mb-3">
+                                <md-checkbox id="enablePan" checked></md-checkbox>
+                                <label for="enablePan">Enable pan/rotate (drag)</label>
+                            </div>
+                            <div class="m3-check-row m3-mb-3">
+                                <md-checkbox id="enableZoom" checked></md-checkbox>
+                                <label for="enableZoom">Enable zoom (scroll/pinch)</label>
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="cubeScale">Scale</label>
+                                <input type="number" class="m3-input" id="cubeScale" min="0.2" max="3.0" value="1.0" step="0.05">
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="cubeMaxHeight">Max Height (px)</label>
+                                <input type="number" class="m3-input" id="cubeMaxHeight" min="100" max="1200" value="500" step="50">
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="gapSize">Gap Size</label>
+                                <input type="number" class="m3-input" id="gapSize" min="0" max="0.2" value="0.08" step="0.01">
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="edgeGapRatio">Edge Gap Ratio</label>
+                                <input type="number" class="m3-input" id="edgeGapRatio" min="0" max="1" value="0.65" step="0.05">
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label">Rotation (radians)</label>
+                                <div class="m3-rotation-grid">
+                                    <div class="m3-input-group">
+                                        <span>X</span>
+                                        <input type="number" class="m3-input" id="thetaX" min="-6.28" max="6.28" value="-0.4" step="0.01">
+                                    </div>
+                                    <div class="m3-input-group">
+                                        <span>Y</span>
+                                        <input type="number" class="m3-input" id="thetaY" min="-6.28" max="6.28" value="-0.6" step="0.01">
+                                    </div>
+                                    <div class="m3-input-group">
+                                        <span>Z</span>
+                                        <input type="number" class="m3-input" id="thetaZ" min="-6.28" max="6.28" value="0" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="baseColor">Base Color</label>
+                                <div class="m3-color-row">
+                                    <input type="color" id="baseColor" value="#000000">
+                                    <div class="m3-check-row">
+                                        <md-checkbox id="showBaseColor" checked></md-checkbox>
+                                        <label for="showBaseColor">Show Base</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="borderColor">Border Color</label>
+                                <div class="m3-color-row">
+                                    <input type="color" id="borderColor" value="#000000">
+                                    <div class="m3-check-row">
+                                        <md-checkbox id="autoBorderColor" checked></md-checkbox>
+                                        <label for="autoBorderColor">Auto</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="borderShade">Border Shade</label>
+                                <input type="number" class="m3-input" id="borderShade" min="0" max="1" value="0.85" step="0.05">
+                            </div>
+                            <div class="m3-mb-3">
+                                <label class="m3-label" for="borderWidth">Border Width</label>
+                                <input type="number" class="m3-input" id="borderWidth" min="0.5" max="10" value="2.5" step="0.5">
+                            </div>
+                            <div class="m3-check-row m3-mb-3">
+                                <md-checkbox id="debugMode"></md-checkbox>
+                                <label for="debugMode">Debug Mode</label>
+                            </div>
+                            <div class="m3-mb-3" id="debugTextColorGroup" style="display: none;">
+                                <label class="m3-label" for="debugTextColor">Debug Text Color</label>
+                                <select id="debugTextColor" class="m3-select">
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="m3-mb-3">
+                        <p class="m3-label">Face Colors</p>
+                        <div class="m3-face-colors">
+                            <div class="m3-face-color"><span>U</span><input type="color" id="colorU" value="#ffffff"></div>
+                            <div class="m3-face-color"><span>D</span><input type="color" id="colorD" value="#f0ff00"></div>
+                            <div class="m3-face-color"><span>R</span><input type="color" id="colorR" value="#e8120a"></div>
+                            <div class="m3-face-color"><span>L</span><input type="color" id="colorL" value="#fb8c00"></div>
+                            <div class="m3-face-color"><span>F</span><input type="color" id="colorF" value="#66ff33"></div>
+                            <div class="m3-face-color"><span>B</span><input type="color" id="colorB" value="#2055ff"></div>
+                        </div>
+                    </div>
+                    <div class="m3-button-row">
+                        <md-outlined-button id="resetCubeSettings">Reset to Defaults</md-outlined-button>
+                        <md-outlined-button id="exportCubeSettings">Export JSON</md-outlined-button>
+                    </div>
+                </div>
+
+                <!-- Smart Cube Tab -->
+                <div class="m3-tab-panel" id="panel-smartcube">
+                    <md-filled-button class="m3-w-full m3-mb-3" id="connectSmartCube">Connect Smart Cube</md-filled-button>
+                    <p class="m3-body-small m3-mb-3">Currently Qiyi and Moyu V10 smart cubes are supported.</p>
+                    <hr class="m3-divider">
+                    <div class="m3-mb-3">
+                        <label class="m3-label" for="smartCubeOrientation">Holding Orientation</label>
+                        <input type="text" id="smartCubeOrientation" class="m3-input" placeholder="e.g., x2 for yellow top">
+                        <p class="m3-body-small m3-mt-2">
+                            Rotation moves from white-top green-front (default) to your holding position.
+                        </p>
+                    </div>
+                    <hr class="m3-divider">
+                    <div class="m3-check-row m3-mb-3">
+                        <md-checkbox id="usePivot" checked></md-checkbox>
+                        <label for="usePivot">Enable pivot tracking</label>
+                    </div>
+                    <p class="m3-body-small">
+                        Auto-rotates the cube to keep a non-moving sticker in place during execution.
+                    </p>
+                </div>
+            </form>
+            <div slot="actions">
+                <md-filled-button form="settingsForm" value="close" onclick="this.closest('md-dialog').close()">Done</md-filled-button>
+            </div>
+        </md-dialog>
+
+        <!-- Help Modal -->
+        <md-dialog id="helpModal">
+            <div slot="headline">Instructions</div>
+            <div slot="content">
+                <p><strong>Enter/Tab/Space</strong>: New scramble.</p>
+                <p><strong>Space</strong>: Stop timer and show algorithm.</p>
+                <p><strong>Left / Right arrows</strong>: View previous algs.</p>
+                <p><strong>Backspace</strong>: Show algorithm without starting timer.</p>
+                <h4 class="m3-mt-3" style="font-size: 0.95rem;">Virtual cube controls</h4>
+                <p>Space: Stop timer, show algorithm and reset case.</p>
+                <p>Timer stops automatically if the cube is solved.</p>
+                <p>Esc: Reset case without showing algorithm.</p>
+                <p><a href="controls.html">View / edit keyboard controls</a></p>
+                <p class="m3-mt-3">Report bugs via <a href="https://github.com/tao-yu/Alg-Trainer/issues">Github issues</a> or DM (Discord, Speedsolving, Reddit). Project is MIT licensed on <a href="https://github.com/tao-yu/Alg-Trainer">Github</a>.</p>
+            </div>
+            <div slot="actions">
+                <md-filled-button onclick="this.closest('md-dialog').close()">Close</md-filled-button>
+            </div>
+        </md-dialog>
+
+        <!-- Presets Modal -->
+        <md-dialog id="presetsModal">
+            <div slot="headline">Algorithm Presets</div>
+            <div slot="content">
+                <h4 class="m3-body-small m3-mb-2" style="font-weight: 500;">Built-in Presets</h4>
+                <div id="builtinPresetsList" class="m3-list-group m3-mb-4"></div>
+
+                <h4 class="m3-body-small m3-mb-2" style="font-weight: 500;">Your Presets</h4>
+                <div id="userPresetsList" class="m3-list-group m3-mb-3"></div>
+
+                <md-outlined-button id="savePresetBtn" class="m3-w-full">Save Current as Preset</md-outlined-button>
+            </div>
+            <div slot="actions">
+                <md-outlined-button onclick="this.closest('md-dialog').close()">Close</md-outlined-button>
+            </div>
+        </md-dialog>
+
+        <!-- Generator Progress Modal -->
+        <md-dialog id="generatorProgressModal">
+            <div slot="headline">Generating Algorithms</div>
+            <div slot="content">
+                <p id="generatorProgressText" class="m3-mb-2">Expanding generators...</p>
+                <div class="m3-progress-wrapper m3-mb-3">
+                    <md-linear-progress id="generatorProgressBar" value="0"></md-linear-progress>
+                </div>
+                <p id="generatorProgressDetail" class="m3-body-small"></p>
+            </div>
+            <div slot="actions">
+                <md-outlined-button onclick="this.closest('md-dialog').close()">Cancel</md-outlined-button>
+            </div>
+        </md-dialog>
+
+    </body>
+</html>

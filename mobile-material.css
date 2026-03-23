@@ -1,0 +1,64 @@
+body {
+  font-family: "Roboto", "Helvetica Neue", Arial, sans-serif;
+}
+
+#loader {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 10;
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+  border: 10px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--bs-primary);
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#page {
+  display: none;
+}
+
+.animate-bottom {
+  animation: fadeUp 0.6s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+textarea#userDefinedAlgs {
+  resize: vertical;
+}
+
+#timer {
+  font-weight: 600;
+}
+
+#cubeSelectButtons button {
+  width: 100%;
+}
+
+#visualcube {
+  min-height: 200px;
+}
+
+#timeList {
+  white-space: pre-wrap;
+}
+
+.offcanvas {
+  max-width: 90vw;
+}
+@media (min-width: 576px) {
+  .offcanvas {
+    max-width: 400px;
+  }
+}

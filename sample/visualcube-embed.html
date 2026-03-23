@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VisualCube 3x3 Embed Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .cube-container {
+            width: 300px;
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+        code {
+            font-size: 14px;
+        }
+        .example-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .example-item {
+            text-align: center;
+        }
+        .example-item h3 {
+            margin-bottom: 10px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>VisualCube 3x3 Embed Example</h1>
+
+    <h2>Required Files</h2>
+    <pre><code>&lt;!-- RENDERING ONLY (static display) --&gt;
+&lt;script src="js/visualCube.js"&gt;&lt;/script&gt;
+
+&lt;!-- FOR CUBE MANIPULATION (apply moves, scrambles) - add: --&gt;
+&lt;script src="js/cube.js"&gt;&lt;/script&gt;          &lt;!-- Cube state + move parsing --&gt;
+&lt;script src="js/visualCube.js"&gt;&lt;/script&gt;    &lt;!-- Rendering --&gt;
+
+&lt;!-- OPTIONAL (for algorithm simplification, inversion, solving): --&gt;
+&lt;!-- &lt;script src="js/alg_jison.js"&gt;&lt;/script&gt; --&gt;
+&lt;!-- &lt;script src="js/alg.js"&gt;&lt;/script&gt; --&gt;
+&lt;!-- &lt;script src="js/solve.js"&gt;&lt;/script&gt; --&gt;</code></pre>
+
+    <h2>Static Examples</h2>
+    <div class="example-row">
+        <div class="example-item">
+            <h3>Solved</h3>
+            <div class="cube-container">
+                <canvas id="cube1" width="600" height="600"></canvas>
+            </div>
+        </div>
+        <div class="example-item">
+            <h3>Scrambled</h3>
+            <div class="cube-container">
+                <canvas id="cube2" width="600" height="600"></canvas>
+            </div>
+        </div>
+        <div class="example-item">
+            <h3>Masked (OLL)</h3>
+            <div class="cube-container">
+                <canvas id="cube3" width="600" height="600"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <h2>Interactive Example (with CubeState)</h2>
+    <div class="example-item">
+        <div class="cube-container" style="width: 400px; height: 400px;">
+            <canvas id="cubeInteractive" width="800" height="800"></canvas>
+        </div>
+        <div>
+            <button onclick="applyMove('R')">R</button>
+            <button onclick="applyMove('U')">U</button>
+            <button onclick="applyMove('F')">F</button>
+            <button onclick="applyMove('L')">L</button>
+            <button onclick="applyMove('D')">D</button>
+            <button onclick="applyMove('B')">B</button>
+            <br>
+            <button onclick="applyMove('R\'')">R'</button>
+            <button onclick="applyMove('U\'')">U'</button>
+            <button onclick="applyMove('F\'')">F'</button>
+            <button onclick="applyMove('L\'')">L'</button>
+            <button onclick="applyMove('D\'')">D'</button>
+            <button onclick="applyMove('B\'')">B'</button>
+            <br>
+            <button onclick="resetCube()">Reset</button>
+            <button onclick="scrambleCube()">Scramble</button>
+        </div>
+    </div>
+
+    <h2>Rendering Only (visualCube.js)</h2>
+    <pre><code>// Just need visualCube.js for static display
+const canvas = document.getElementById('myCube');
+const ctx = canvas.getContext('2d');
+
+const vc = new VisualCube(
+    canvas.width,   // width
+    canvas.height,  // height
+    180,            // scale
+    -0.4,           // thetaX (radians)
+    -0.6,           // thetaY (radians)
+    0,              // thetaZ (radians)
+    3,              // cubeSize
+    0.08,           // gapSize
+    0.65            // edgeGapRatio
+);
+
+vc.showBaseColor = true;
+vc.baseColor = "#000000";
+vc.stickerBorderColor = null;
+
+// 54-char string: U(9) + R(9) + F(9) + D(9) + L(9) + B(9)
+vc.cubeString = "UUUUUUUUURRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
+
+vc.drawCube(ctx);</code></pre>
+
+    <h2>With Cube Manipulation (cube.js)</h2>
+    <pre><code>// Include: cube.js + visualCube.js
+
+// Create cube using cube.js
+const cube = new Cube();
+
+// Apply moves (standard notation)
+cube.move("R U R' U'");
+
+// Get state as 54-char string for rendering
+const cubeString = cube.asString();
+
+// Render
+const vc = new VisualCube(600, 600, 180, -0.4, -0.6, 0, 3, 0.08, 0.65);
+vc.cubeString = cubeString;
+vc.drawCube(ctx);
+
+// Reset to solved
+cube.identity();
+
+// Check if solved
+if (cube.isSolved()) {
+    console.log("Solved!");
+}
+
+// Random scramble
+Cube.initSolver();  // Call once to initialize
+const scramble = Cube.scramble();
+cube.move(scramble);</code></pre>
+
+    <h2>Cube String Format</h2>
+    <pre><code>// 54-character string: U(9) + R(9) + F(9) + D(9) + L(9) + B(9)
+// Each face read left-to-right, top-to-bottom:
+//     0 1 2
+//     3 4 5
+//     6 7 8
+
+// Solved:
+"UUUUUUUUURRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
+
+// Use 'x' for masked stickers:
+"UUUUUUUUURRRxxxxxxFFFxxxxxxxxxxxxxxLLLxxxxxxBBBxxxxxx"</code></pre>
+
+    <!-- Cube state + move parsing -->
+    <script src="../js/cube.js"></script>
+    <!-- Visual rendering -->
+    <script src="../js/visualCube.js"></script>
+
+    <script>
+        // Helper to create a VisualCube instance
+        function createVC(canvas) {
+            const vc = new VisualCube(
+                canvas.width,
+                canvas.height,
+                canvas.width / 3.3,
+                -0.4,
+                -0.6,
+                0,
+                3,
+                0.08,
+                0.65
+            );
+            vc.showBaseColor = true;
+            vc.baseColor = "#000000";
+            vc.stickerBorderColor = null;
+            return vc;
+        }
+
+        // Static Example 1: Solved cube
+        (function() {
+            const canvas = document.getElementById('cube1');
+            const ctx = canvas.getContext('2d');
+            const vc = createVC(canvas);
+            vc.cubeString = "UUUUUUUUURRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
+            vc.drawCube(ctx);
+        })();
+
+        // Static Example 2: Scrambled cube
+        (function() {
+            const canvas = document.getElementById('cube2');
+            const ctx = canvas.getContext('2d');
+            const vc = createVC(canvas);
+            vc.cubeString = "FUBUUFDLRUBRRRLFFDRFLFUBFBDDBRDDFUULLBDLLRLLFRUBBRODB";
+            vc.drawCube(ctx);
+        })();
+
+        // Static Example 3: Masked (OLL)
+        (function() {
+            const canvas = document.getElementById('cube3');
+            const ctx = canvas.getContext('2d');
+            const vc = createVC(canvas);
+            vc.cubeString = "UUUUUUUUURRRxxxxxxFFFxxxxxxxxxxxxxxLLLxxxxxxBBBxxxxxx";
+            vc.drawCube(ctx);
+        })();
+
+        // Interactive Example with cube.js
+        let interactiveCube;
+        let interactiveVC;
+        let interactiveCtx;
+
+        (function() {
+            const canvas = document.getElementById('cubeInteractive');
+            interactiveCtx = canvas.getContext('2d');
+            interactiveVC = createVC(canvas);
+
+            // Create cube using cube.js
+            interactiveCube = new Cube();
+
+            renderInteractive();
+        })();
+
+        function renderInteractive() {
+            interactiveVC.cubeString = interactiveCube.asString();
+            interactiveVC.drawCube(interactiveCtx);
+        }
+
+        function applyMove(move) {
+            interactiveCube.move(move);
+            renderInteractive();
+        }
+
+        function resetCube() {
+            interactiveCube.identity();
+            renderInteractive();
+        }
+
+        function scrambleCube() {
+            const moves = ['R', 'U', 'F', 'L', 'D', 'B'];
+            const modifiers = ['', '\'', '2'];
+            let scramble = '';
+            for (let i = 0; i < 20; i++) {
+                scramble += moves[Math.floor(Math.random() * 6)] +
+                           modifiers[Math.floor(Math.random() * 3)] + ' ';
+            }
+            interactiveCube.identity();
+            interactiveCube.move(scramble.trim());
+            renderInteractive();
+        }
+    </script>
+</body>
+</html>

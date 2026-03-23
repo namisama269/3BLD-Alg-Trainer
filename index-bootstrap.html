@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Alg Trainer</title>
+        <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+        <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+        <link id="theme-stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/litera/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="style-material.css">
+    </head>
+    <body>
+
+        <div id="loader"></div>
+        <div id="page" class="animate-bottom d-none">
+
+            <!-- ==================== SCREEN 1: CONFIG ==================== -->
+            <div id="screen-config" class="screen-panel">
+                <div class="container-lg px-3 px-lg-3 py-3 py-lg-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0 fw-bold">Alg Trainer</h4>
+                        <div class="d-flex gap-2 align-items-center">
+                            <button id="themeToggleBtn" class="btn btn-outline-secondary btn-sm" title="Toggle theme">
+                                <i id="themeIcon" class="bi bi-sun"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#helpModal">
+                                <i class="bi bi-question-circle"></i> Help
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Left Column: Algorithms -->
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header fw-semibold">Algorithms</div>
+                                <div class="card-body">
+                                    <p class="text-muted small mb-2">One alg per line. Use # for subset headers, // for comments.</p>
+                                    <textarea id="userDefinedAlgs" rows="12" class="form-control mb-2" placeholder="# Subset Name&#10;R U R' U'&#10;// comment"></textarea>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <button id="updateSetsBtn" class="btn btn-outline-secondary btn-sm">Update Sets</button>
+                                        <button id="presetsBtn" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#presetsModal">Presets</button>
+                                    </div>
+                                    <div id="subsetCheckboxes" class="mb-3" style="display: none;"></div>
+                                    <table id="algsetStatistics" class="table table-sm mb-3"></table>
+
+                                    <div class="d-flex align-items-center">
+                                        <label class="form-check-label me-2" for="algOrder">Case order:</label>
+                                        <select id="algOrder" class="form-select form-select-sm w-auto">
+                                            <option value="random">Random</option>
+                                            <option value="inOrder">In order</option>
+                                            <option value="shuffled">Shuffled</option>
+                                            <option value="weighted">Weighted (least practiced)</option>
+                                        </select>
+                                        <span id="algProgress" class="ms-2 text-muted small" style="display: none;"></span>
+                                        <button id="bookmarkFilterBtn" class="btn btn-outline-secondary btn-sm ms-2" title="Train bookmarked only">
+                                            <i class="bi bi-star"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Settings (inline) -->
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header fw-semibold">Settings</div>
+                                <div class="card-body">
+                                    <ul class="nav nav-tabs nav-fill mb-3" role="tablist">
+                                        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cfg-panel-trainer" type="button" role="tab">Trainer</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-masks" type="button" role="tab">Masks</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-preorientation" type="button" role="tab">Preorientation</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-cube" type="button" role="tab">Cube Visual</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-smartcube" type="button" role="tab">Smart Cube</button></li>
+                            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-controls" type="button" role="tab">Controls</button></li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade show active" id="cfg-panel-trainer" role="tabpanel">
+                                            <div class="row row-cols-1 row-cols-md-2 g-2">
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="useVirtual" type="checkbox"><label class="form-check-label" for="useVirtual">Use Virtual Cube</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="hideTimer" type="checkbox"><label class="form-check-label" for="hideTimer">Hide timer</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="includeRecognitionTime" type="checkbox"><label class="form-check-label" for="includeRecognitionTime">Include recognition time</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="showScramble" type="checkbox"><label class="form-check-label" for="showScramble">Show scramble</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="realScrambles" type="checkbox"><label class="form-check-label" for="realScrambles">Use real scrambles</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="randAUF" type="checkbox"><label class="form-check-label" for="randAUF">Random AUF</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="prescramble" type="checkbox" checked><label class="form-check-label" for="prescramble">Scramble subsequent steps</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="goToNextCase" type="checkbox"><label class="form-check-label" for="goToNextCase">Don't show alg after stopping timer</label></div></div>
+                                                <div class="col"><div class="form-check"><input class="form-check-input" id="autoAddInverses" type="checkbox"><label class="form-check-label" for="autoAddInverses">Auto add inverses</label></div></div>
+                                            </div>
+                                            <div class="row g-2 mt-2">
+                                                <div class="col-6">
+                                                    <label class="form-label small mb-1">Mirror across M</label>
+                                                    <select id="mirrorM" class="form-select form-select-sm">
+                                                        <option value="off">Off</option>
+                                                        <option value="always">Always</option>
+                                                        <option value="random">Random (50%)</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small mb-1">Mirror across S</label>
+                                                    <select id="mirrorS" class="form-select form-select-sm">
+                                                        <option value="off">Off</option>
+                                                        <option value="always">Always</option>
+                                                        <option value="random">Random (50%)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane fade" id="cfg-panel-masks" role="tabpanel">
+                                            <div class="form-check mb-3"><input class="form-check-input" id="useMask" type="checkbox" checked><label class="form-check-label" for="useMask">Enable masks</label></div>
+                                            <div class="mb-3"><label for="initialMask" class="form-label">Initial mask</label><input id="initialMask" maxlength="54" class="form-control" placeholder="Enter a 54 character mask"></div>
+                                            <div class="mb-3"><label for="finalMask" class="form-label">Final mask</label><input id="finalMask" maxlength="54" class="form-control" placeholder="Enter a 54 character mask"></div>
+                                            <div class="d-flex flex-wrap gap-3 small"><a href="cubeMasks.html" class="link-primary">How to use cube masks</a><a href="cubeMaskPresets.html" class="link-primary">Presets</a></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="cfg-panel-preorientation" role="tabpanel">
+                                            <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="fullCN"><label class="form-check-label" for="fullCN">Full colour neutrality</label></div>
+                                            <p class="text-muted small mb-2">Or configure rotations from WCA orientation:</p>
+                                            <div class="row g-3">
+                                                <div class="col-md-4"><label class="form-label small" for="colourneutrality1">First rotation</label><input type="text" id="colourneutrality1" value="" class="form-control"></div>
+                                                <div class="col-md-4"><label class="form-label small" for="colourneutrality2">Random rotations</label><input type="text" id="colourneutrality2" value="" class="form-control"></div>
+                                                <div class="col-md-4"><label class="form-label small" for="colourneutrality3">Final rotations</label><input type="text" id="colourneutrality3" value="" class="form-control"></div>
+                                            </div>
+                                            <a class="small d-block mt-3" href="scramblingNote.html">Note on preorientation settings</a>
+                                        </div>
+                                        <div class="tab-pane fade" id="cfg-panel-cube" role="tabpanel">
+                                            <div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+                                                <label for="cubePreset" class="form-label mb-0">Preset:</label>
+                                                <select id="cubePreset" class="form-select form-select-sm" style="width: auto;"><optgroup label="Built-in"><option value="default">Default</option></optgroup><optgroup label="Custom" id="customPresetsGroup"></optgroup></select>
+                                                <button id="savePresetBtn" class="btn btn-outline-primary btn-sm">Save As...</button>
+                                                <button id="deletePresetBtn" class="btn btn-outline-danger btn-sm" style="display: none;">Delete</button>
+                                            </div>
+                                            <hr>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="enablePan" checked><label class="form-check-label" for="enablePan">Enable pan/rotate (drag)</label></div></div>
+                                                    <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="enableZoom" checked><label class="form-check-label" for="enableZoom">Enable zoom (scroll/pinch)</label></div></div>
+                                                    <div class="mb-3"><label for="cubeScale" class="form-label">Scale</label><input type="number" class="form-control form-control-sm" id="cubeScale" min="0.2" max="3.0" value="1.0" step="0.05"></div>
+                                                    <div class="mb-3"><label for="cubeMaxHeight" class="form-label">Max Height (px)</label><input type="number" class="form-control form-control-sm" id="cubeMaxHeight" min="100" max="1200" value="500" step="50"></div>
+                                                    <div class="mb-3"><label for="gapSize" class="form-label">Gap Size</label><input type="number" class="form-control form-control-sm" id="gapSize" min="0" max="0.2" value="0.08" step="0.01"></div>
+                                                    <div class="mb-3"><label for="edgeGapRatio" class="form-label">Edge Gap Ratio</label><input type="number" class="form-control form-control-sm" id="edgeGapRatio" min="0" max="1" value="0.65" step="0.05"></div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Rotation (radians)</label>
+                                                        <div class="row g-2">
+                                                            <div class="col-4"><div class="input-group input-group-sm"><span class="input-group-text">X</span><input type="number" class="form-control" id="thetaX" min="-6.28" max="6.28" value="-0.4" step="0.01"></div></div>
+                                                            <div class="col-4"><div class="input-group input-group-sm"><span class="input-group-text">Y</span><input type="number" class="form-control" id="thetaY" min="-6.28" max="6.28" value="-0.6" step="0.01"></div></div>
+                                                            <div class="col-4"><div class="input-group input-group-sm"><span class="input-group-text">Z</span><input type="number" class="form-control" id="thetaZ" min="-6.28" max="6.28" value="0" step="0.01"></div></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3"><label for="baseColor" class="form-label">Base Color</label><div class="d-flex gap-2 align-items-center"><input type="color" class="form-control form-control-color" id="baseColor" value="#000000"><div class="form-check"><input class="form-check-input" type="checkbox" id="showBaseColor" checked><label class="form-check-label" for="showBaseColor">Show Base</label></div></div></div>
+                                                    <div class="mb-3"><label for="borderColor" class="form-label">Border Color</label><div class="d-flex gap-2 align-items-center"><input type="color" class="form-control form-control-color" id="borderColor" value="#000000"><div class="form-check"><input class="form-check-input" type="checkbox" id="autoBorderColor" checked><label class="form-check-label" for="autoBorderColor">Auto</label></div></div></div>
+                                                    <div class="mb-3"><label for="borderShade" class="form-label">Border Shade</label><input type="number" class="form-control form-control-sm" id="borderShade" min="0" max="1" value="0.85" step="0.05"></div>
+                                                    <div class="mb-3"><label for="borderWidth" class="form-label">Border Width</label><input type="number" class="form-control form-control-sm" id="borderWidth" min="0.5" max="10" value="2.5" step="0.5"></div>
+                                                    <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="debugMode"><label class="form-check-label" for="debugMode">Debug Mode</label></div></div>
+                                                    <div class="mb-3" id="debugTextColorGroup" style="display: none;"><label for="debugTextColor" class="form-label">Debug Text Color</label><select id="debugTextColor" class="form-select form-select-sm"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <p class="form-label small text-muted mb-2">Face Colors</p>
+                                                <div class="row g-2">
+                                                    <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">U</span><input type="color" id="colorU" class="form-control form-control-color" value="#ffffff"></label></div>
+                                                    <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">D</span><input type="color" id="colorD" class="form-control form-control-color" value="#f0ff00"></label></div>
+                                                    <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">R</span><input type="color" id="colorR" class="form-control form-control-color" value="#e8120a"></label></div>
+                                                    <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">L</span><input type="color" id="colorL" class="form-control form-control-color" value="#fb8c00"></label></div>
+                                                    <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">F</span><input type="color" id="colorF" class="form-control form-control-color" value="#66ff33"></label></div>
+                                                    <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">B</span><input type="color" id="colorB" class="form-control form-control-color" value="#2055ff"></label></div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-secondary" id="resetCubeSettings">Reset to Defaults</button>
+                                                <button class="btn btn-outline-primary" id="exportCubeSettings">Export JSON</button>
+                                            </div>
+                                        </div>
+                                        <div class="tab-pane fade" id="cfg-panel-smartcube" role="tabpanel">
+                                            <button class="btn btn-primary w-100 mb-3" id="connectSmartCube">Connect Smart Cube</button>
+                                            <p class="text-muted small mb-3">Currently Qiyi and Moyu V10 smart cubes are supported.</p>
+                                            <hr>
+                                            <div class="mb-3"><label for="smartCubeOrientation" class="form-label">Holding Orientation</label><input type="text" id="smartCubeOrientation" class="form-control form-control-sm" placeholder="e.g., x2 for yellow top"><small class="form-text text-muted">Rotation moves from white-top green-front (default) to your holding position.</small></div>
+                                            <hr>
+                                            <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="usePivot" checked><label class="form-check-label" for="usePivot">Enable pivot tracking</label><small class="form-text text-muted d-block">Auto-rotates the cube to keep a non-moving sticker in place during execution.</small></div>
+                                        </div>
+                                        <div class="tab-pane fade" id="cfg-panel-controls" role="tabpanel">
+                                            <p class="text-muted small mb-2">Click a row to edit. Changes are saved automatically.</p>
+                                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                                <table class="table table-sm table-hover mb-2" id="keymapTable">
+                                                    <thead><tr><th>Key</th><th>Move</th><th></th></tr></thead>
+                                                    <tbody id="keymapTableBody"></tbody>
+                                                </table>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-primary btn-sm" id="addKeymapBtn"><i class="bi bi-plus"></i> Add</button>
+                                                <button class="btn btn-outline-secondary btn-sm" id="resetKeymapBtn">Reset to defaults</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> <!-- /row -->
+
+                    <!-- Start Training Button (below both columns) -->
+                    <button id="startTrainingBtn" class="btn btn-primary btn-lg w-100 mt-4">
+                        Start Training
+                    </button>
+                </div>
+            </div>
+
+            <!-- ==================== SCREEN 2: TRAINER ==================== -->
+            <div id="screen-trainer" class="screen-panel d-none">
+                <div class="container-lg px-3 px-lg-3 py-2 py-lg-3">
+                    <div class="row g-2 g-lg-3">
+                        <div class="col-lg-8 mx-auto">
+                            <!-- Top bar -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <button id="backToConfigBtn" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-arrow-left"></i> Setup
+                                    </button>
+                                    <span class="fw-bold">Alg Trainer</span>
+                                </div>
+                                <button class="btn btn-outline-secondary btn-sm" title="Settings" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                                    <i class="bi bi-gear"></i>
+                                </button>
+                            </div>
+                            <!-- Scramble -->
+                            <div class="card mb-3">
+                                <div class="card-body text-center py-2">
+                                    <p id="scramble" class="fs-6 mb-0">Scramble</p>
+                                </div>
+                            </div>
+                            <div class="card mb-4">
+                                <div class="card-body text-center d-flex flex-column">
+                                    <div id="simcube" class="border rounded bg-body-tertiary">
+                                        <canvas id="cube" width="1200" height="1200" class="img-fluid"></canvas>
+                                    </div>
+                                    <div id="timer_div" class="px-3 pb-3">
+                                        <p id="timer" class="display-5 mb-0">0.00</p>
+                                    </div>
+                                    <div id="algdisplayer" class="p-3">
+                                        <div class="d-flex justify-content-center align-items-center gap-2">
+                                            <button id="starBtn" class="btn btn-link text-muted p-0 fs-5" title="Bookmark this case">
+                                                <i class="bi bi-star"></i>
+                                            </button>
+                                            <p id="algdisp" class="fs-5 mb-0">Solution</p>
+                                            <span id="caseCount" class="badge bg-secondary small"></span>
+                                        </div>
+                                    </div>
+                                    <div class="w-100">
+                                        <div class="row g-2">
+                                            <div class="col-md-4 d-grid"><button id="addAlgBtn" class="btn btn-outline-primary">Add Alg</button></div>
+                                            <div class="col-md-4 d-grid"><button id="removeAlgBtn" class="btn btn-outline-primary">Remove Alg</button></div>
+                                            <div class="col-md-4 d-grid"><button class="btn btn-outline-secondary" onclick="resetCase()">Reset Case</button></div>
+                                        </div>
+                                        <div class="row g-2 mt-2">
+                                            <div class="col-2 d-grid"><button id="onscreenLeft" class="btn btn-outline-secondary">&lt;</button></div>
+                                            <div class="col-4 d-grid"><button class="btn btn-primary" onclick="displayAlgorithmForPreviousTest()">Show Solution</button></div>
+                                            <div class="col-4 d-grid"><button class="btn btn-primary" onclick="nextScramble()">Next Scramble</button></div>
+                                            <div class="col-2 d-grid"><button id="onscreenRight" class="btn btn-outline-secondary">&gt;</button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold">Times</span>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-danger btn-sm" id="deleteLast">Delete last</button>
+                                        <button class="btn btn-outline-danger btn-sm" id="clearTimes">Clear all</button>
+                                    </div>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div id="scrollTimes" style="max-height:140px; overflow-y:auto;">
+                                        <p id="timeList" class="mb-0">&nbsp;</p>
+                                    </div>
+                                    <p id="statistics" class="text-muted small mb-0 mt-2">&nbsp;</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <script>
+            (function () {
+                const THEME_KEY = "algTrainerTheme";
+                const THEMES = {
+                    light: "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/litera/bootstrap.min.css",
+                    dark: "https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/darkly/bootstrap.min.css"
+                };
+                const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+                const storedTheme = localStorage.getItem(THEME_KEY);
+                const prefersDark = mediaQuery.matches;
+                const initialTheme = storedTheme || (prefersDark ? "dark" : "light");
+
+                let currentTheme = initialTheme;
+
+                function applyTheme(theme) {
+                    currentTheme = theme;
+                    const isDark = theme === "dark";
+                    const link = document.getElementById("theme-stylesheet");
+                    if (link) {
+                        link.href = isDark ? THEMES.dark : THEMES.light;
+                    }
+                    document.documentElement.setAttribute("data-bs-theme", isDark ? "dark" : "light");
+                    const icon = document.getElementById("themeIcon");
+                    if (icon) {
+                        icon.className = isDark ? "bi bi-moon" : "bi bi-sun";
+                    }
+                }
+
+                // Apply theme immediately to prevent flash
+                applyTheme(initialTheme);
+
+                document.addEventListener("DOMContentLoaded", function() {
+                    // Sync icon on load
+                    applyTheme(currentTheme);
+
+                    const btn = document.getElementById("themeToggleBtn");
+                    if (btn) {
+                        btn.addEventListener("click", () => {
+                            const theme = currentTheme === "dark" ? "light" : "dark";
+                            applyTheme(theme);
+                            localStorage.setItem(THEME_KEY, theme);
+                        });
+                    }
+                });
+
+                const handleSchemeChange = (event) => {
+                    if (!localStorage.getItem(THEME_KEY)) {
+                        applyTheme(event.matches ? "dark" : "light");
+                    }
+                };
+
+                if (mediaQuery.addEventListener) {
+                    mediaQuery.addEventListener("change", handleSchemeChange);
+                } else if (mediaQuery.addListener) {
+                    mediaQuery.addListener(handleSchemeChange);
+                }
+            })();
+        </script>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+        <script>
+            // Persist collapse state for card sections
+            (function() {
+                const COLLAPSE_KEY = 'algTrainerCollapseState';
+
+                // Load saved collapse states
+                function loadCollapseStates() {
+                    const stored = localStorage.getItem(COLLAPSE_KEY);
+                    if (stored) {
+                        try {
+                            return JSON.parse(stored);
+                        } catch (e) {
+                            return {};
+                        }
+                    }
+                    return {};
+                }
+
+                // Save collapse states
+                function saveCollapseStates(states) {
+                    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(states));
+                }
+
+                // Apply saved states on page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    const states = loadCollapseStates();
+                    const collapseElements = document.querySelectorAll('.collapse');
+
+                    collapseElements.forEach(function(el) {
+                        const id = el.id;
+                        if (id && states.hasOwnProperty(id)) {
+                            if (states[id]) {
+                                el.classList.add('show');
+                            } else {
+                                el.classList.remove('show');
+                            }
+                        }
+
+                        // Listen for collapse events
+                        el.addEventListener('shown.bs.collapse', function() {
+                            const currentStates = loadCollapseStates();
+                            currentStates[id] = true;
+                            saveCollapseStates(currentStates);
+                        });
+
+                        el.addEventListener('hidden.bs.collapse', function() {
+                            const currentStates = loadCollapseStates();
+                            currentStates[id] = false;
+                            saveCollapseStates(currentStates);
+                        });
+                    });
+                });
+            })();
+        </script>
+        <!-- External libraries -->
+        <script src="js/cube.js"></script>
+        <script src="js/solve.js"></script>
+        <script src="js/alg_jison.js"></script>
+        <script src="js/alg.js"></script>
+        <script src="js/lzstring.js"></script>
+        <script src="js/encryption.js"></script>
+        <script src="js/isaac.js"></script>
+        <script src="js/mathlib.js"></script>
+
+        <!-- Helper utilities -->
+        <script src="js/helpers.js"></script>
+        <script src="js/controls.js"></script>
+
+        <!-- Core modules -->
+        <script src="js/core/CubeState.js"></script>
+        <script src="js/core/AlgorithmUtils.js"></script>
+
+        <!-- Visual cube -->
+        <script src="js/visualCube.js"></script>
+
+        <!-- Trainer modules -->
+        <script src="js/trainer/TimerModule.js"></script>
+        <script src="js/trainer/AlgorithmList.js"></script>
+        <script src="js/trainer/GeneratorParser.js"></script>
+        <script src="js/trainer/TrainerCore.js"></script>
+        <script src="js/trainer/PresetsManager.js"></script>
+
+        <!-- UI modules -->
+        <script src="js/ui/SettingsManager.js"></script>
+        <script src="js/ui/UIController.js"></script>
+        <script src="js/ui/VisualCubeController.js"></script>
+
+        <!-- Input handling -->
+        <script src="js/keymaps.js"></script>
+        <script src="js/input/KeyboardController.js"></script>
+
+        <!-- Smart cube (optional) -->
+        <script src="js/smartCube.js"></script>
+        <script src="js/input/SmartCubeModule.js"></script>
+
+        <!-- Settings UI -->
+        <script src="js/visualCubeSettings.js"></script>
+
+        <!-- Main entry point -->
+        <script src="js/main.js"></script>
+
+        <!-- Legacy support (can be removed once migration is verified) -->
+        <!-- <script src="js/RubiksCube.legacy.js"></script> -->
+
+        <!-- Settings Modal -->
+        <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="settingsModalLabel">Settings</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#cfg-panel-trainer" type="button" role="tab">Trainer</button></li>
+                            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-masks" type="button" role="tab">Masks</button></li>
+                            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-preorientation" type="button" role="tab">Preorientation</button></li>
+                            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-cube" type="button" role="tab">Cube Visual</button></li>
+                            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-smartcube" type="button" role="tab">Smart Cube</button></li>
+                            <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#cfg-panel-controls" type="button" role="tab">Controls</button></li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="cfg-panel-trainer" role="tabpanel">
+                                <div class="row row-cols-1 row-cols-md-2 g-2">
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="useVirtual" type="checkbox"><label class="form-check-label" for="useVirtual">Use Virtual Cube</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="hideTimer" type="checkbox"><label class="form-check-label" for="hideTimer">Hide timer</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="includeRecognitionTime" type="checkbox"><label class="form-check-label" for="includeRecognitionTime">Include recognition time</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="showScramble" type="checkbox"><label class="form-check-label" for="showScramble">Show scramble</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="realScrambles" type="checkbox"><label class="form-check-label" for="realScrambles">Use real scrambles</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="randAUF" type="checkbox"><label class="form-check-label" for="randAUF">Random AUF</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="prescramble" type="checkbox" checked><label class="form-check-label" for="prescramble">Scramble subsequent steps</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="goToNextCase" type="checkbox"><label class="form-check-label" for="goToNextCase">Don't show alg after stopping timer</label></div></div>
+                                    <div class="col"><div class="form-check"><input class="form-check-input" id="autoAddInverses" type="checkbox"><label class="form-check-label" for="autoAddInverses">Auto add inverses</label></div></div>
+                                    <div class="col">
+                                        <label class="form-label small mb-1">Mirror across M</label>
+                                        <select id="mirrorM" class="form-select form-select-sm">
+                                            <option value="off">Off</option>
+                                            <option value="always">Always</option>
+                                            <option value="random">Random (50%)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label small mb-1">Mirror across S</label>
+                                        <select id="mirrorS" class="form-select form-select-sm">
+                                            <option value="off">Off</option>
+                                            <option value="always">Always</option>
+                                            <option value="random">Random (50%)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="cfg-panel-masks" role="tabpanel">
+                                <div class="form-check mb-3"><input class="form-check-input" id="useMask" type="checkbox" checked><label class="form-check-label" for="useMask">Enable masks</label></div>
+                                <div class="mb-3"><label for="initialMask" class="form-label">Initial mask</label><input id="initialMask" maxlength="54" class="form-control" placeholder="Enter a 54 character mask"></div>
+                                <div class="mb-3"><label for="finalMask" class="form-label">Final mask</label><input id="finalMask" maxlength="54" class="form-control" placeholder="Enter a 54 character mask"></div>
+                                <div class="d-flex flex-wrap gap-3 small"><a href="cubeMasks.html" class="link-primary">How to use cube masks</a><a href="cubeMaskPresets.html" class="link-primary">Presets</a></div>
+                            </div>
+                            <div class="tab-pane fade" id="cfg-panel-preorientation" role="tabpanel">
+                                <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="fullCN"><label class="form-check-label" for="fullCN">Full colour neutrality</label></div>
+                                <p class="text-muted small mb-2">Or configure rotations from WCA orientation:</p>
+                                <div class="row g-3">
+                                    <div class="col-md-4"><label class="form-label small" for="colourneutrality1">First rotation</label><input type="text" id="colourneutrality1" value="" class="form-control"></div>
+                                    <div class="col-md-4"><label class="form-label small" for="colourneutrality2">Random rotations</label><input type="text" id="colourneutrality2" value="" class="form-control"></div>
+                                    <div class="col-md-4"><label class="form-label small" for="colourneutrality3">Final rotations</label><input type="text" id="colourneutrality3" value="" class="form-control"></div>
+                                </div>
+                                <a class="small d-block mt-3" href="scramblingNote.html">Note on preorientation settings</a>
+                            </div>
+                            <div class="tab-pane fade" id="cfg-panel-cube" role="tabpanel">
+                                <div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+                                    <label for="cubePreset" class="form-label mb-0">Preset:</label>
+                                    <select id="cubePreset" class="form-select form-select-sm" style="width: auto;"><optgroup label="Built-in"><option value="default">Default</option></optgroup><optgroup label="Custom" id="customPresetsGroup"></optgroup></select>
+                                    <button id="savePresetBtn" class="btn btn-outline-primary btn-sm">Save As...</button>
+                                    <button id="deletePresetBtn" class="btn btn-outline-danger btn-sm" style="display: none;">Delete</button>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="enablePan" checked><label class="form-check-label" for="enablePan">Enable pan/rotate (drag)</label></div></div>
+                                        <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="enableZoom" checked><label class="form-check-label" for="enableZoom">Enable zoom (scroll/pinch)</label></div></div>
+                                        <div class="mb-3"><label for="cubeScale" class="form-label">Scale</label><input type="number" class="form-control form-control-sm" id="cubeScale" min="0.2" max="3.0" value="1.0" step="0.05"></div>
+                                        <div class="mb-3"><label for="cubeMaxHeight" class="form-label">Max Height (px)</label><input type="number" class="form-control form-control-sm" id="cubeMaxHeight" min="100" max="1200" value="500" step="50"></div>
+                                        <div class="mb-3"><label for="gapSize" class="form-label">Gap Size</label><input type="number" class="form-control form-control-sm" id="gapSize" min="0" max="0.2" value="0.08" step="0.01"></div>
+                                        <div class="mb-3"><label for="edgeGapRatio" class="form-label">Edge Gap Ratio</label><input type="number" class="form-control form-control-sm" id="edgeGapRatio" min="0" max="1" value="0.65" step="0.05"></div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Rotation (radians)</label>
+                                            <div class="row g-2">
+                                                <div class="col-4"><div class="input-group input-group-sm"><span class="input-group-text">X</span><input type="number" class="form-control" id="thetaX" min="-6.28" max="6.28" value="-0.4" step="0.01"></div></div>
+                                                <div class="col-4"><div class="input-group input-group-sm"><span class="input-group-text">Y</span><input type="number" class="form-control" id="thetaY" min="-6.28" max="6.28" value="-0.6" step="0.01"></div></div>
+                                                <div class="col-4"><div class="input-group input-group-sm"><span class="input-group-text">Z</span><input type="number" class="form-control" id="thetaZ" min="-6.28" max="6.28" value="0" step="0.01"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3"><label for="baseColor" class="form-label">Base Color</label><div class="d-flex gap-2 align-items-center"><input type="color" class="form-control form-control-color" id="baseColor" value="#000000"><div class="form-check"><input class="form-check-input" type="checkbox" id="showBaseColor" checked><label class="form-check-label" for="showBaseColor">Show Base</label></div></div></div>
+                                        <div class="mb-3"><label for="borderColor" class="form-label">Border Color</label><div class="d-flex gap-2 align-items-center"><input type="color" class="form-control form-control-color" id="borderColor" value="#000000"><div class="form-check"><input class="form-check-input" type="checkbox" id="autoBorderColor" checked><label class="form-check-label" for="autoBorderColor">Auto</label></div></div></div>
+                                        <div class="mb-3"><label for="borderShade" class="form-label">Border Shade</label><input type="number" class="form-control form-control-sm" id="borderShade" min="0" max="1" value="0.85" step="0.05"></div>
+                                        <div class="mb-3"><label for="borderWidth" class="form-label">Border Width</label><input type="number" class="form-control form-control-sm" id="borderWidth" min="0.5" max="10" value="2.5" step="0.5"></div>
+                                        <div class="mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="debugMode"><label class="form-check-label" for="debugMode">Debug Mode</label></div></div>
+                                        <div class="mb-3" id="debugTextColorGroup" style="display: none;"><label for="debugTextColor" class="form-label">Debug Text Color</label><select id="debugTextColor" class="form-select form-select-sm"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <p class="form-label small text-muted mb-2">Face Colors</p>
+                                    <div class="row g-2">
+                                        <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">U</span><input type="color" id="colorU" class="form-control form-control-color" value="#ffffff"></label></div>
+                                        <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">D</span><input type="color" id="colorD" class="form-control form-control-color" value="#f0ff00"></label></div>
+                                        <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">R</span><input type="color" id="colorR" class="form-control form-control-color" value="#e8120a"></label></div>
+                                        <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">L</span><input type="color" id="colorL" class="form-control form-control-color" value="#fb8c00"></label></div>
+                                        <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">F</span><input type="color" id="colorF" class="form-control form-control-color" value="#66ff33"></label></div>
+                                        <div class="col-4 col-md-2"><label class="d-flex align-items-center gap-2"><span class="small">B</span><input type="color" id="colorB" class="form-control form-control-color" value="#2055ff"></label></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-outline-secondary" id="resetCubeSettings">Reset to Defaults</button>
+                                    <button class="btn btn-outline-primary" id="exportCubeSettings">Export JSON</button>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="cfg-panel-smartcube" role="tabpanel">
+                                <button class="btn btn-primary w-100 mb-3" id="connectSmartCube">Connect Smart Cube</button>
+                                <p class="text-muted small mb-3">Currently Qiyi and Moyu V10 smart cubes are supported.</p>
+                                <hr>
+                                <div class="mb-3"><label for="smartCubeOrientation" class="form-label">Holding Orientation</label><input type="text" id="smartCubeOrientation" class="form-control form-control-sm" placeholder="e.g., x2 for yellow top"><small class="form-text text-muted">Rotation moves from white-top green-front (default) to your holding position.</small></div>
+                                <hr>
+                                <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="usePivot" checked><label class="form-check-label" for="usePivot">Enable pivot tracking</label><small class="form-text text-muted d-block">Auto-rotates the cube to keep a non-moving sticker in place during execution.</small></div>
+                            </div>
+                            <div class="tab-pane fade" id="cfg-panel-controls" role="tabpanel">
+                                <p class="mb-3">Configure keyboard bindings for cube moves.</p>
+                                <a href="controls.html" target="_blank" class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-keyboard"></i> Open Keyboard Controls
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Modal -->
+        <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="helpModalLabel">Instructions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body small">
+                        <p><strong>Enter/Tab/Space</strong>: New scramble.</p>
+                        <p><strong>Space</strong>: Stop timer and show algorithm.</p>
+                        <p><strong>Left / Right arrows</strong>: View previous algs.</p>
+                        <p><strong>Backspace</strong>: Show algorithm without starting timer.</p>
+                        <h6 class="mt-3">Virtual cube controls</h6>
+                        <p>Space: Stop timer, show algorithm and reset case.</p>
+                        <p>Timer stops automatically if the cube is solved.</p>
+                        <p>Esc: Reset case without showing algorithm.</p>
+                        <p class="mt-3 mb-0">Report bugs via <a href="https://github.com/tao-yu/Alg-Trainer/issues">Github issues</a> or DM (Discord, Speedsolving, Reddit). Project is MIT licensed on <a href="https://github.com/tao-yu/Alg-Trainer">Github</a>.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Presets Modal -->
+        <div class="modal fade" id="presetsModal" tabindex="-1" aria-labelledby="presetsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="presetsModalLabel">Algorithm Presets</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6 class="text-muted mb-2">Built-in Presets</h6>
+                        <div id="builtinPresetsList" class="list-group mb-4"></div>
+
+                        <h6 class="text-muted mb-2">Your Presets</h6>
+                        <div id="userPresetsList" class="list-group mb-3"></div>
+
+                        <button id="savePresetBtn" class="btn btn-outline-primary w-100">Save Current as Preset</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generator Progress Modal -->
+        <div class="modal fade" id="generatorProgressModal" tabindex="-1" aria-labelledby="generatorProgressModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="generatorProgressModalLabel">Generating Algorithms</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="generatorProgressText" class="mb-2">Expanding generators...</p>
+                        <div class="progress mb-3">
+                            <div id="generatorProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p id="generatorProgressDetail" class="text-muted small mb-0"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </body>
+</html>

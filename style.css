@@ -202,9 +202,9 @@ a:visited {
   box-sizing: border-box;
 }
 
-canvas {
-  width: 360px;
-  height: 360px;
+#cube {
+  width: 360px !important;
+  height: 240px !important;
 }
 
 #holdingOrientation {
@@ -232,9 +232,7 @@ form input, form label, form button {
 }
 
 .cube-container {
-  border: 1px solid #ccc;
   padding: 10px;
-  border-radius: 8px;
 }
 
 .button-grid {

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Alg Trainer Mobile · Bootstrap Theme</title>
+    <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="mobile-material.css">
+</head>
+
+<body>
+
+    <div id="loader"></div>
+
+    <div id="left_popup" class="offcanvas offcanvas-start" tabindex="-1">
+        <div class="offcanvas-header">
+            <div>
+                <p class="text-uppercase small text-secondary mb-1">Trainer</p>
+                <h5 class="mb-0">Settings</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-4">
+                <label class="form-label">Enter algs</label>
+                <textarea id="userDefinedAlgs" rows="8" class="form-control" placeholder="R U R' U'&#10;# comment"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Holding orientation</label>
+                <input type="text" id="holdingOrientation" value="" size="4" class="form-control" placeholder="0">
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" id="useMask" type="checkbox" checked>
+                <label class="form-check-label" for="useMask">Enable masks</label>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="initialMask">Initial mask</label>
+                <input id="initialMask" size="51" maxlength="54" class="form-control" placeholder="54 character mask">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="finalMask">Final mask</label>
+                <input id="finalMask" size="51" maxlength="54" class="form-control" placeholder="54 character mask">
+            </div>
+            <div class="mb-4">
+                <a href="cubeMasks.html" class="d-block small">How to use cube masks</a>
+                <a href="cubeMaskPresets.html" class="d-block small">Presets</a>
+            </div>
+            <div class="mb-4">
+                <p class="fw-semibold mb-2">Trainer options</p>
+                <div class="list-group small">
+                    <label class="list-group-item"><input class="form-check-input me-2" id="useVirtual" type="checkbox">Use Virtual Cube</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="hideTimer" type="checkbox">Hide timer</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="includeRecognitionTime" type="checkbox">Include recognition time</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="showScramble" type="checkbox">Show Scramble</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="realScrambles" type="checkbox">Use Real Scrambles</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="randAUF" type="checkbox">Random AUF</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="prescramble" type="checkbox" checked>Scramble subsequent steps</label>
+                    <div class="list-group-item d-flex align-items-center"><label class="me-2" for="algOrder">Case order:</label><select id="algOrder" class="form-select form-select-sm w-auto"><option value="random">Random</option><option value="inOrder">In order</option><option value="shuffled">Shuffled</option></select><span id="algProgress" class="ms-2 text-muted small" style="display: none;"></span></div>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="goToNextCase" type="checkbox">Don't show alg after stopping timer</label>
+                    <label class="list-group-item"><input class="form-check-input me-2" id="autoAddInverses" type="checkbox">Auto add inverses</label>
+                    <div class="list-group-item d-flex justify-content-between align-items-center"><span><input class="form-check-input me-2" id="mirrorAllAlgs" type="checkbox">Mirror across M</span><span><input class="form-check-input me-2" id="randomizeMMirror" type="checkbox">Randomize</span></div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center"><span><input class="form-check-input me-2" id="mirrorAllAlgsAcrossS" type="checkbox">Mirror across S</span><span><input class="form-check-input me-2" id="randomizeSMirror" type="checkbox">Randomize</span></div>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p class="fw-semibold mb-2">Preorientation</p>
+                <label class="form-check mb-2">
+                    <input class="form-check-input me-2" type="checkbox" id="fullCN">
+                    <span class="form-check-label">Full colour neutrality</span>
+                </label>
+                <p class="small text-muted">Or configure relative to WCA orientation:</p>
+                <div class="row g-2">
+                    <div class="col">
+                        <label class="form-label small" for="colourneutrality1">First rotation</label>
+                        <input type="text" id="colourneutrality1" value="" size="2" class="form-control">
+                    </div>
+                    <div class="col">
+                        <label class="form-label small" for="colourneutrality2">Random rotations</label>
+                        <input type="text" id="colourneutrality2" value="" size="2" class="form-control">
+                    </div>
+                    <div class="col">
+                        <label class="form-label small" for="colourneutrality3">Final rotations</label>
+                        <input type="text" id="colourneutrality3" value="" size="2" class="form-control">
+                    </div>
+                </div>
+                <a class="small" href="scramblingNote.html">Note on preorientation settings</a>
+            </div>
+            <div class="mb-4">
+                <button id="connectSmartCube" class="btn btn-primary w-100">Connect Smart Cube</button>
+                <p class="small text-muted mt-2 mb-0">Currently Qiyi and Moyu V10 smart cubes are supported.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="right_popup" class="offcanvas offcanvas-end" tabindex="-1">
+        <div class="offcanvas-header">
+            <div>
+                <p class="text-uppercase small text-secondary mb-1">Insights</p>
+                <h5 class="mb-0">Times & Stats</h5>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="mb-4 border rounded p-3 bg-body-tertiary" id="visualcube"></div>
+            <div class="mb-3">
+                <div id="scrollTimes" class="border rounded p-3 bg-body" style="max-height:220px; overflow-y:auto;">
+                    <p id="timeList" class="mb-0">&nbsp;</p>
+                </div>
+            </div>
+            <p id="statistics" class="mb-3">&nbsp;</p>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+                <button id="deleteLast" class="btn btn-outline-danger">Delete last solve</button>
+                <button id="clearTimes" class="btn btn-outline-danger">Clear all</button>
+            </div>
+            <table id="algsetStatistics" class="table table-sm"></table>
+            <div class="mt-4 small">
+                <p><strong>Enter/Tab/Space</strong>: New scramble.</p>
+                <p><strong>Space</strong>: Stop timer and show algorithm.</p>
+                <p><strong>Left/right</strong>: Browse previous algs.</p>
+                <p><strong>Backspace</strong>: Show algorithm without starting timer.</p>
+                <h6>Virtual cube controls</h6>
+                <p>Space: Stop timer, show algorithm and reset case.</p>
+                <p>Timer stops automatically when solved.</p>
+                <p>Esc: Reset case without showing algorithm.</p>
+                <p><a href="controls.html">View/edit keyboard controls</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="page" class="animate-bottom d-none">
+        <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <p class="text-uppercase text-secondary small mb-1">Alg Trainer</p>
+                    <h1 class="h4 mb-0">Mobile Workspace</h1>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#left_popup" id="left_popup_button">Settings</button>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#right_popup" id="right_popup_button">Times</button>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="mobileThemeToggle">
+                        <label class="form-check-label" for="mobileThemeToggle">Dark</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-body text-center">
+                    <p id="scramble" class="badge text-bg-primary-subtle text-primary-emphasis fs-6">Scramble</p>
+                    <div id="touchStartArea" class="mt-3">
+                        <div id="simcube" class="border rounded bg-body-tertiary p-3 mb-3">
+                            <canvas id="cube" width="1200" height="1200" class="w-100 h-auto"></canvas>
+                        </div>
+                        <div id="timer_div" class="bg-body-secondary rounded py-3 mb-2">
+                            <p id="timer" class="display-5 mb-0">0.00</p>
+                        </div>
+                        <div id="algdisplayer" class="border rounded p-3 bg-body">
+                            <p id="algdisp" class="fs-5 mb-0">Solution</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="flexbox" class="d-flex flex-column gap-3 mb-3">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button id="addAlgBtn" class="btn btn-outline-primary flex-fill">Add Alg</button>
+                    <button id="removeAlgBtn" class="btn btn-outline-primary flex-fill">Remove Alg</button>
+                    <button class="btn btn-outline-secondary flex-fill" onclick="resetCase()">Reset Case</button>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button id="onscreenLeft" class="btn btn-outline-secondary flex-fill">&lt;</button>
+                    <button class="btn btn-primary flex-fill" onclick="displayAlgorithmForPreviousTest()">Solution</button>
+                    <button class="btn btn-primary flex-fill" onclick="nextScramble()">Next</button>
+                    <button id="onscreenRight" class="btn btn-outline-secondary flex-fill">&gt;</button>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-body-secondary fw-semibold">Cube Sets</div>
+                <div class="card-body">
+                    <div id="cubeSelectButtons" class="row g-2">
+                        <!-- buttons injected dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const THEME_KEY = "algTrainerMobileTheme";
+            const root = document.documentElement;
+            const toggle = document.getElementById("mobileThemeToggle");
+            const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+            const storedTheme = localStorage.getItem(THEME_KEY);
+            const prefersDark = mediaQuery.matches;
+            const initialTheme = storedTheme || (prefersDark ? "dark" : "light");
+
+            function applyTheme(theme) {
+                root.setAttribute("data-bs-theme", theme === "dark" ? "dark" : "light");
+                if (toggle) {
+                    toggle.checked = theme === "dark";
+                }
+            }
+
+            applyTheme(initialTheme);
+
+            if (toggle) {
+                toggle.addEventListener("change", () => {
+                    const theme = toggle.checked ? "dark" : "light";
+                    applyTheme(theme);
+                    localStorage.setItem(THEME_KEY, theme);
+                });
+            }
+
+            const handleSchemeChange = (event) => {
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(event.matches ? "dark" : "light");
+                }
+            };
+
+            if (mediaQuery.addEventListener) {
+                mediaQuery.addEventListener("change", handleSchemeChange);
+            } else if (mediaQuery.addListener) {
+                mediaQuery.addListener(handleSchemeChange);
+            }
+        })();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="js/cube.js"></script>
+    <script src="js/solve.js"></script>
+    <script src="js/alg_jison.js"></script>
+    <script src="js/alg.js"></script>
+    <script src="js/visualCube.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/alg_list.js"></script>
+    <script src="js/lzstring.js"></script>
+    <script src="js/encryption.js"></script>
+    <script src="js/isaac.js"></script>
+    <script src="js/mathlib.js"></script>
+    <script src="js/smartCube.js"></script>
+    <script src="js/keymaps.js"></script>
+    <script src="js/RubiksCube.js"></script>
+</body>
+
+</html>

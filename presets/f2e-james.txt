@@ -1,0 +1,99 @@
+# UB
+R U R' U R U2 R' U l' U' L U' L' U2 l U'
+M' U': M U M', U'
+S U' R: E, R' U2 R'
+U': U R' U R, S
+U' S R: E', R' U R'
+R E R', U' + U R': E, R U' R
+U' M' U': M, U R U
+M' U M, U'
+M' U r' S' R, U'
+U: U2 R U' R', S'
+M' U R S' r', U'
+L' U': S, U2 R' F R
+R': U R U, M
+U' M' U': M, U R' U
+S': U, M' U' M
+U R2': S, R F R
+M, U2 + U: S, R' F R
+U': S, U2 R' F R
+# UL
+R' F R, S + S: R' E R, U'
+U2 R B' R', S
+R' F R, S + S: R E' R', U'
+S U' R: E, R' U R'
+M2' U': M, U R U
+M': M U M' U M, U2
+r' U': M', U R U
+L F' L', S' + S', U2
+M R U': M', U R' U
+S U' R': E', R U R
+R F R', S + S, R' B R'
+M2 U': M, U R' U
+U: U, M' U' M
+U, S' U' S
+M U' M', U'
+S, U' R U' R'
+# FR
+U' l' U' M U R U M' U' B x'
+l2' U': M, U R U
+F' L': S', L F' L
+U F2 U' R' F' u' R2' u R F
+R U' r'M U M' U' R U r' U' M2' U
+R u' R E' R' U R' E R E' R'
+F' U' R: E, R' U R'
+l R U': M', U R' U
+U' M: M' U R S' r', U'
+U R': S, R F R
+M': U, M U' r S' R'
+R U R': S, R' F R'
+D' R U R': S, R' F R'
+U: L/E' + U: U, L E' L'
+# FL
+S U' R: E, R' U' R'
+R' E: R U' R, E
+U' L': U, M' U M
+x r2' U': M', U R U
+R/E + R' F R, S'
+R E': R' U' R', E'
+E' L: M U' M', U'
+R2 U' R': E, R U R' U' R
+L' U: U, M' U' M
+R E R', U' + R'/E
+L': M U' M', U'
+R F R': R' F R', S'
+# DF
+M': U, M U' R' S r
+l' U: S, U' R U' R'
+M': U, M U' R' S' r
+R F' R2': R U' R, E
+F' L': S', L F2' L
+D: R F R, S'
+r U': S, U R U' R2'
+R' F' R2: R' U' R', E
+r: M', U' R' U'
+L F' L': S', L F2' L
+# DB
+r' U' r' S r U M' U R S R' U' R
+L: M U' M', U'
+U' R' U' F R S R' F' R S' r' U R U M'
+S': U, M U M'
+S U' r': E', R U R
+U' M: M' U r' S' R, U'
+R U R' U: M, U' R2 U'
+U' M: M' U r' S R, U'
+# DR
+R F R, S'
+R' E' R, U' + R/E'
+R' U R: S, R' F R'
+R'/E' + R' F R, S'
+u': R/E' + E: R E' R', U'
+S', U' R2' U R2
+# DL
+D' L: M U' M', U'
+u: L'/E' + u: U, L' E' L
+S U' R': E', R U' R
+l2 U': M, U R' U
+# RB
+x' U' M' U R U M U' l'
+x' U M' U R U M U' R' U2' x

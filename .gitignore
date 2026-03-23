@@ -31,3 +31,4 @@ dist-ssr
 *.zip
 # *.py
 misc/
+.claude/
