@@ -51,7 +51,14 @@ body {
 /* ===== Cube ===== */
 #cube {
   max-height: 500px;
+  overflow: hidden;
+}
+
+#cube svg {
+  max-height: inherit;
   width: auto;
+  margin: 0 auto;
+  display: block;
 }
 
 #simcube {

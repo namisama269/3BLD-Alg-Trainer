@@ -289,3 +289,69 @@ function commToMoves(alg) {
     out = out.replace(/\s+/g, " ");
     return out;
 }
+
+/**
+ * Colorize an algorithm string by wrapping each move in a colored span.
+ * Colors are based on face colors from VisualCube, mapped through the
+ * smart cube holding orientation.
+ */
+function colorizeAlgorithm(algText) {
+    if (!algText || localStorage.getItem('colorizeAlgs') !== 'true') return algText;
+
+    var faceColorMap = getOrientedFaceColors();
+    if (!faceColorMap) return algText;
+
+    var moveColorMap = {
+        'R': faceColorMap.R, 'r': faceColorMap.R,
+        'L': faceColorMap.L, 'l': faceColorMap.L,
+        'U': faceColorMap.U, 'u': faceColorMap.U,
+        'D': faceColorMap.D, 'd': faceColorMap.D,
+        'F': faceColorMap.F, 'f': faceColorMap.F,
+        'B': faceColorMap.B, 'b': faceColorMap.B,
+        'M': '#c19a6b', // brown
+        'E': '#fd6c9e', // pink
+        'S': '#ab82ff', // purple
+    };
+
+    return algText.replace(/([RLUDFBrudflbMESxyz][2']?)/g, function(match) {
+        var base = match[0];
+        var color = moveColorMap[base];
+        if (color) {
+            return '<span style="color:' + color + ';">' + match + '</span>';
+        }
+        return match;
+    });
+}
+
+/**
+ * Get face colors mapped through the smart cube holding orientation.
+ */
+function getOrientedFaceColors() {
+    var colors;
+    if (window.vc && window.vc.stickerColors) {
+        colors = window.vc.stickerColors;
+    } else {
+        colors = { U: '#ffffff', R: '#E8120A', F: '#00d800', D: '#F0FF00', L: '#FB8C00', B: '#2055FF' };
+    }
+
+    var orientation = localStorage.getItem('smartCubeOrientation') || '';
+    if (!orientation.trim() || !window.RubiksCube) {
+        return { U: colors.U, R: colors.R, F: colors.F, D: colors.D, L: colors.L, B: colors.B };
+    }
+
+    var tempCube = new RubiksCube();
+    tempCube.resetCube();
+    tempCube.doAlgorithm(orientation.trim());
+    var str = tempCube.toString();
+
+    var faceLetterMap = { U: str[4], R: str[13], F: str[22], D: str[31], L: str[40], B: str[49] };
+
+    return {
+        U: colors[faceLetterMap.U] || colors.U,
+        R: colors[faceLetterMap.R] || colors.R,
+        F: colors[faceLetterMap.F] || colors.F,
+        D: colors[faceLetterMap.D] || colors.D,
+        L: colors[faceLetterMap.L] || colors.L,
+        B: colors[faceLetterMap.B] || colors.B,
+    };
+}

@@ -316,9 +316,8 @@
             consecutiveUMoves++;
             if (consecutiveUMoves >= 8) {
                 consecutiveUMoves = 0;
-                console.log('SmartCube: 4x U detected — resetting case');
+                console.log('SmartCube: 8x U detected — resetting case');
                 resetCase();
-                nextScramble();
                 return;
             }
         } else {
@@ -828,7 +827,7 @@
         if (solutions !== null) {
             const algdisp = document.getElementById("algdisp");
             if (algdisp) {
-                algdisp.innerHTML = solutions;
+                algdisp.innerHTML = window.colorizeAlgorithm ? colorizeAlgorithm(solutions) : solutions;
                 algdisp.style.whiteSpace = "pre-line";
             }
         }
@@ -861,16 +860,38 @@
             timerText = algTest.solveTime.toString();
         }
 
-        updateTrainer(
-            "<span style=\"color: #90f182\">" + algTest.orientRandPart + "</span> " + algTest.scramble,
-            algTest.solutions.join("\n"),
-            algTest.preorientation + algTest.scramble,
-            timerText
-        );
-
+        // Update UI text
         const scrambleElement = document.getElementById("scramble");
         if (scrambleElement) {
+            scrambleElement.innerHTML = "<span style=\"color: #90f182\">" + algTest.orientRandPart + "</span> " + algTest.scramble;
             scrambleElement.style.color = '#e6e6e6';
+        }
+
+        const algdisp = document.getElementById("algdisp");
+        if (algdisp) {
+            var solText = algTest.solutions.join("\n");
+            algdisp.innerHTML = window.colorizeAlgorithm ? colorizeAlgorithm(solText) : solText;
+            algdisp.style.whiteSpace = "pre-line";
+        }
+
+        const timerElement = document.getElementById("timer");
+        if (timerElement) {
+            timerElement.innerHTML = timerText;
+        }
+
+        // Rebuild cube state the same way testAlg does — with proper mask reset
+        if (cube) {
+            cube.resetCube();
+            const cn1Element = document.getElementById("colourneutrality1");
+            const cn1 = cn1Element ? cn1Element.value : localStorage.getItem("colourneutrality1") || "";
+            if (cn1 && cn1.trim()) {
+                cube.doAlgorithm(cn1.trim());
+            }
+            if (algTest.orientRandPart && algTest.orientRandPart.trim()) {
+                cube.doAlgorithm(algTest.orientRandPart.trim());
+            }
+            cube.resetMask();
+            doAlg(algTest.scramble, false);
         }
 
         if (onCubeStateChanged) {

@@ -26,6 +26,7 @@
         "autoAddInverses": false,
         "useMask": true,
         "usePivot": true,
+        "colorizeAlgs": false,
         "algInputMode": "custom", // "custom" or "generator"
         "generatorInput": ""
     };
@@ -78,27 +79,57 @@
         }
 
         for (const setting in DEFAULTS) {
-            const element = document.getElementById(setting);
-            if (!element) continue;
-
+            const elements = document.querySelectorAll('#' + CSS.escape(setting));
             const previousSetting = localStorage.getItem(setting);
 
-            if (typeof DEFAULTS[setting] === "boolean") {
-                if (previousSetting === null) {
-                    element.checked = DEFAULTS[setting];
-                    localStorage.setItem(setting, DEFAULTS[setting]);
+            elements.forEach(function(element) {
+                if (typeof DEFAULTS[setting] === "boolean") {
+                    if (previousSetting === null) {
+                        element.checked = DEFAULTS[setting];
+                    } else {
+                        element.checked = previousSetting === "true";
+                    }
                 } else {
-                    element.checked = previousSetting === "true";
+                    if (previousSetting === null) {
+                        element.value = DEFAULTS[setting];
+                    } else {
+                        element.value = previousSetting;
+                    }
                 }
-            } else {
-                if (previousSetting === null) {
-                    element.value = DEFAULTS[setting];
-                    localStorage.setItem(setting, DEFAULTS[setting]);
-                } else {
-                    element.value = previousSetting;
-                }
+            });
+
+            // Save default if not yet stored
+            if (previousSetting === null) {
+                localStorage.setItem(setting, DEFAULTS[setting]);
             }
         }
+    }
+
+    /**
+     * Sync all duplicate elements with the same ID to match the given value.
+     * Called after any setting change so config screen and modal stay in sync.
+     */
+    function syncDuplicateElements(id, value, isCheckbox) {
+        var elements = document.querySelectorAll('#' + CSS.escape(id));
+        elements.forEach(function(el) {
+            if (isCheckbox) {
+                el.checked = value;
+            } else {
+                el.value = value;
+            }
+        });
+    }
+
+    /**
+     * Bind a click/change listener to ALL elements with the given ID.
+     * Returns the first element (for backward compat with callbacks).
+     */
+    function bindAll(id, event, handler) {
+        var elements = document.querySelectorAll('#' + CSS.escape(id));
+        elements.forEach(function(el) {
+            el.addEventListener(event, handler);
+        });
+        return elements.length > 0 ? elements[0] : null;
     }
 
     /**
@@ -113,157 +144,83 @@
             onGoToNextCaseChanged
         } = callbacks;
 
-        // Use Virtual checkbox
-        const useVirtual = document.getElementById("useVirtual");
-        if (useVirtual) {
-            useVirtual.addEventListener("click", function() {
-                setSetting("useVirtual", this.checked);
-                if (onUseVirtualChanged) {
-                    onUseVirtualChanged(this.checked);
-                }
+        // Simple checkbox settings — bind all duplicates and keep in sync
+        var simpleCheckboxes = [
+            "includeRecognitionTime", "showScramble", "realScrambles",
+            "randAUF", "prescramble", "useMask", "usePivot", "fullCN", "colorizeAlgs"
+        ];
+        simpleCheckboxes.forEach(function(id) {
+            bindAll(id, "click", function() {
+                setSetting(id, this.checked);
+                syncDuplicateElements(id, this.checked, true);
             });
-        }
+        });
 
-        // Hide Timer checkbox
-        const hideTimer = document.getElementById("hideTimer");
-        if (hideTimer) {
-            hideTimer.addEventListener("click", function() {
-                setSetting("hideTimer", this.checked);
-                if (onHideTimerChanged) {
-                    onHideTimerChanged(!this.checked);
-                }
+        // Checkboxes with callbacks
+        bindAll("useVirtual", "click", function() {
+            setSetting("useVirtual", this.checked);
+            syncDuplicateElements("useVirtual", this.checked, true);
+            if (onUseVirtualChanged) onUseVirtualChanged(this.checked);
+        });
+
+        bindAll("hideTimer", "click", function() {
+            setSetting("hideTimer", this.checked);
+            syncDuplicateElements("hideTimer", this.checked, true);
+            if (onHideTimerChanged) onHideTimerChanged(!this.checked);
+        });
+
+        bindAll("autoAddInverses", "click", function() {
+            setSetting("autoAddInverses", this.checked);
+            syncDuplicateElements("autoAddInverses", this.checked, true);
+            if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
+                window.TrainerCore.resetShuffledIndices();
+            }
+        });
+
+        bindAll("goToNextCase", "click", function() {
+            setSetting("goToNextCase", this.checked);
+            syncDuplicateElements("goToNextCase", this.checked, true);
+            if (onGoToNextCaseChanged) onGoToNextCaseChanged(this.checked);
+        });
+
+        // Legacy go in order checkbox
+        bindAll("goInOrder", "click", function() {
+            setSetting("goInOrder", this.checked);
+            syncDuplicateElements("goInOrder", this.checked, true);
+            if (onGoInOrderChanged) onGoInOrderChanged(this.checked);
+        });
+
+        // Dropdowns
+        bindAll("algOrder", "change", function() {
+            setSetting("algOrder", this.value);
+            syncDuplicateElements("algOrder", this.value, false);
+            if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
+                window.TrainerCore.resetShuffledIndices();
+            }
+            if (onGoInOrderChanged) onGoInOrderChanged(this.value);
+        });
+
+        bindAll("mirrorM", "change", function() {
+            setSetting("mirrorM", this.value);
+            syncDuplicateElements("mirrorM", this.value, false);
+        });
+
+        bindAll("mirrorS", "change", function() {
+            setSetting("mirrorS", this.value);
+            syncDuplicateElements("mirrorS", this.value, false);
+        });
+
+        // Text inputs that may have duplicates — sync on change
+        var syncTextInputs = [
+            "colourneutrality1", "colourneutrality2", "colourneutrality3",
+            "initialMask", "finalMask"
+        ];
+        syncTextInputs.forEach(function(id) {
+            bindAll(id, "input", function() {
+                localStorage.setItem(id, this.value);
+                syncDuplicateElements(id, this.value, false);
             });
-        }
-
-        // Include Recognition Time checkbox
-        const includeRecognitionTime = document.getElementById("includeRecognitionTime");
-        if (includeRecognitionTime) {
-            includeRecognitionTime.addEventListener("click", function() {
-                setSetting("includeRecognitionTime", this.checked);
-            });
-        }
-
-        // Show Scramble checkbox
-        const showScramble = document.getElementById("showScramble");
-        if (showScramble) {
-            showScramble.addEventListener("click", function() {
-                setSetting("showScramble", this.checked);
-            });
-        }
-
-        // Real Scrambles checkbox
-        const realScrambles = document.getElementById("realScrambles");
-        if (realScrambles) {
-            realScrambles.addEventListener("click", function() {
-                setSetting("realScrambles", this.checked);
-            });
-        }
-
-        // Random AUF checkbox
-        const randAUF = document.getElementById("randAUF");
-        if (randAUF) {
-            randAUF.addEventListener("click", function() {
-                setSetting("randAUF", this.checked);
-            });
-        }
-
-        // Prescramble checkbox
-        const prescramble = document.getElementById("prescramble");
-        if (prescramble) {
-            prescramble.addEventListener("click", function() {
-                setSetting("prescramble", this.checked);
-            });
-        }
-
-
-        // Auto Add Inverses checkbox
-        const autoAddInverses = document.getElementById("autoAddInverses");
-        if (autoAddInverses) {
-            autoAddInverses.addEventListener("click", function() {
-                setSetting("autoAddInverses", this.checked);
-                // Reset shuffled indices when this setting changes
-                if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
-                    window.TrainerCore.resetShuffledIndices();
-                }
-            });
-        }
-
-        // Use Mask checkbox
-        const useMask = document.getElementById("useMask");
-        if (useMask) {
-            useMask.addEventListener("click", function() {
-                setSetting("useMask", this.checked);
-            });
-        }
-
-        // Use Pivot checkbox
-        const usePivot = document.getElementById("usePivot");
-        if (usePivot) {
-            usePivot.addEventListener("click", function() {
-                setSetting("usePivot", this.checked);
-            });
-        }
-
-        // Go In Order checkbox (legacy support)
-        const goInOrder = document.getElementById("goInOrder");
-        if (goInOrder) {
-            goInOrder.addEventListener("click", function() {
-                setSetting("goInOrder", this.checked);
-                if (onGoInOrderChanged) {
-                    onGoInOrderChanged(this.checked);
-                }
-            });
-        }
-
-        // Algorithm Order dropdown (new)
-        const algOrder = document.getElementById("algOrder");
-        if (algOrder) {
-            algOrder.addEventListener("change", function() {
-                setSetting("algOrder", this.value);
-                // Reset shuffled indices when order changes
-                if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
-                    window.TrainerCore.resetShuffledIndices();
-                }
-                if (onGoInOrderChanged) {
-                    onGoInOrderChanged(this.value);
-                }
-            });
-        }
-
-        // Go To Next Case checkbox
-        const goToNextCase = document.getElementById("goToNextCase");
-        if (goToNextCase) {
-            goToNextCase.addEventListener("click", function() {
-                setSetting("goToNextCase", this.checked);
-                if (onGoToNextCaseChanged) {
-                    onGoToNextCaseChanged(this.checked);
-                }
-            });
-        }
-
-        // Mirror M dropdown
-        const mirrorM = document.getElementById("mirrorM");
-        if (mirrorM) {
-            mirrorM.addEventListener("change", function() {
-                setSetting("mirrorM", this.value);
-            });
-        }
-
-        // Mirror S dropdown
-        const mirrorS = document.getElementById("mirrorS");
-        if (mirrorS) {
-            mirrorS.addEventListener("change", function() {
-                setSetting("mirrorS", this.value);
-            });
-        }
-
-        // Full CN checkbox
-        const fullCN = document.getElementById("fullCN");
-        if (fullCN) {
-            fullCN.addEventListener("click", function() {
-                setSetting("fullCN", this.checked);
-            });
-        }
+        });
 
         // Visual Cube view toggle
         const visualCube = document.getElementById("visualcube");

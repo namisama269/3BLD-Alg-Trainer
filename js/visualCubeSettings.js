@@ -27,7 +27,7 @@
         colorD: '#f0ff00',
         colorR: '#e8120a',
         colorL: '#fb8c00',
-        colorF: '#66ff33',
+        colorF: '#00d800',
         colorB: '#2055ff'
     };
 
@@ -117,15 +117,13 @@
         // Recalculate face stickers with new gap settings
         vc.faceStickers = VisualCube.getFaceStickers(vc.cubeSize, vc.gapSize, vc.edgeGapRatio);
 
-        // Apply max height CSS to canvas element
-        const canvas = document.getElementById('cube');
-        if (canvas) {
+        // Apply max height CSS to cube container
+        const cubeContainer = document.getElementById('cube');
+        if (cubeContainer) {
             if (settings.cubeMaxHeight && settings.cubeMaxHeight > 0) {
-                canvas.style.maxHeight = settings.cubeMaxHeight + 'px';
-                canvas.style.width = 'auto';
+                cubeContainer.style.maxHeight = settings.cubeMaxHeight + 'px';
             } else {
-                canvas.style.maxHeight = '';
-                canvas.style.width = '';
+                cubeContainer.style.maxHeight = '';
             }
         }
 
@@ -135,102 +133,40 @@
         }
     }
 
-    // Update UI elements to reflect current settings
+    // Update UI elements to reflect current settings (all duplicates)
     function updateUI(settings) {
-        // Pan/Zoom toggles
-        const enablePanInput = document.getElementById('enablePan');
-        if (enablePanInput) {
-            enablePanInput.checked = settings.enablePan !== false;
+        function setAll(id, value, isCheckbox) {
+            document.querySelectorAll('#' + CSS.escape(id)).forEach(function(el) {
+                if (isCheckbox) el.checked = value; else el.value = value;
+            });
         }
 
-        const enableZoomInput = document.getElementById('enableZoom');
-        if (enableZoomInput) {
-            enableZoomInput.checked = settings.enableZoom !== false;
-        }
+        setAll('enablePan', settings.enablePan !== false, true);
+        setAll('enableZoom', settings.enableZoom !== false, true);
+        setAll('cubeScale', parseFloat((settings.scaleFactor || 1.0).toFixed(2)), false);
+        setAll('gapSize', settings.gapSize, false);
+        setAll('edgeGapRatio', settings.edgeGapRatio, false);
+        setAll('thetaX', settings.thetaX.toFixed(2), false);
+        setAll('thetaY', settings.thetaY.toFixed(2), false);
+        setAll('thetaZ', settings.thetaZ.toFixed(2), false);
+        setAll('baseColor', settings.baseColor, false);
+        setAll('showBaseColor', settings.showBaseColor, true);
+        setAll('borderColor', settings.borderColor, false);
+        setAll('autoBorderColor', settings.autoBorderColor, true);
+        setAll('borderShade', settings.borderShade, false);
+        setAll('borderWidth', settings.borderWidth || 2.5, false);
+        setAll('debugMode', settings.debugMode, true);
+        setAll('debugTextColor', settings.debugTextColor || 'dark', false);
+        setAll('cubeMaxHeight', settings.cubeMaxHeight || 500, false);
 
-        // Scale Factor
-        const scaleInput = document.getElementById('cubeScale');
-        if (scaleInput) {
-            scaleInput.value = settings.scaleFactor || 1.0;
-        }
+        document.querySelectorAll('#debugTextColorGroup').forEach(function(el) {
+            el.style.display = settings.debugMode ? 'block' : 'none';
+        });
 
-        // Gap Size
-        const gapSizeInput = document.getElementById('gapSize');
-        if (gapSizeInput) {
-            gapSizeInput.value = settings.gapSize;
-        }
-
-        // Edge Gap Ratio
-        const edgeGapRatioInput = document.getElementById('edgeGapRatio');
-        if (edgeGapRatioInput) {
-            edgeGapRatioInput.value = settings.edgeGapRatio;
-        }
-
-        // Rotation angles (in radians)
-        const thetaXInput = document.getElementById('thetaX');
-        if (thetaXInput) {
-            thetaXInput.value = settings.thetaX.toFixed(2);
-        }
-
-        const thetaYInput = document.getElementById('thetaY');
-        if (thetaYInput) {
-            thetaYInput.value = settings.thetaY.toFixed(2);
-        }
-
-        const thetaZInput = document.getElementById('thetaZ');
-        if (thetaZInput) {
-            thetaZInput.value = settings.thetaZ.toFixed(2);
-        }
-
-        // Colors and checkboxes
-        const baseColorInput = document.getElementById('baseColor');
-        if (baseColorInput) baseColorInput.value = settings.baseColor;
-
-        const showBaseColorInput = document.getElementById('showBaseColor');
-        if (showBaseColorInput) showBaseColorInput.checked = settings.showBaseColor;
-
-        const borderColorInput = document.getElementById('borderColor');
-        if (borderColorInput) borderColorInput.value = settings.borderColor;
-
-        const autoBorderColorInput = document.getElementById('autoBorderColor');
-        if (autoBorderColorInput) autoBorderColorInput.checked = settings.autoBorderColor;
-
-        const borderShadeInput = document.getElementById('borderShade');
-        if (borderShadeInput) {
-            borderShadeInput.value = settings.borderShade;
-        }
-
-        const borderWidthInput = document.getElementById('borderWidth');
-        if (borderWidthInput) {
-            borderWidthInput.value = settings.borderWidth || 2.5;
-        }
-
-        const debugModeInput = document.getElementById('debugMode');
-        if (debugModeInput) debugModeInput.checked = settings.debugMode;
-
-        // Debug text color
-        const debugTextColorSelect = document.getElementById('debugTextColor');
-        if (debugTextColorSelect) debugTextColorSelect.value = settings.debugTextColor || 'dark';
-
-        // Debug text color group visibility
-        const debugTextColorGroup = document.getElementById('debugTextColorGroup');
-        if (debugTextColorGroup) {
-            debugTextColorGroup.style.display = settings.debugMode ? 'block' : 'none';
-        }
-
-        // Cube Max Height
-        const cubeMaxHeightInput = document.getElementById('cubeMaxHeight');
-        if (cubeMaxHeightInput) {
-            cubeMaxHeightInput.value = settings.cubeMaxHeight || 500;
-        }
-
-        // Face colors
-        const faceKeys = ['U', 'D', 'R', 'L', 'F', 'B'];
-        faceKeys.forEach(face => {
-            const colorInput = document.getElementById('color' + face);
-            const colorKey = 'color' + face;
-            if (colorInput && settings[colorKey]) {
-                colorInput.value = settings[colorKey];
+        var faceKeys = ['U', 'D', 'R', 'L', 'F', 'B'];
+        faceKeys.forEach(function(face) {
+            if (settings['color' + face]) {
+                setAll('color' + face, settings['color' + face], false);
             }
         });
     }
@@ -362,195 +298,112 @@
     }
 
     // Attach event listeners to all controls
+    // Uses querySelectorAll to bind ALL duplicates (config screen + settings modal)
     function attachEventListeners(currentSettings) {
-        // Enable Pan checkbox
-        const enablePanInput = document.getElementById('enablePan');
-        if (enablePanInput) {
-            enablePanInput.addEventListener('change', function() {
-                currentSettings.enablePan = this.checked;
-                saveSettings(currentSettings);
+
+        // Helper: bind event to all elements with given ID, sync duplicates on change
+        function bindAllVC(id, event, handler) {
+            document.querySelectorAll('#' + CSS.escape(id)).forEach(function(el) {
+                el.addEventListener(event, handler);
+            });
+        }
+        function syncAllVC(id, value, isCheckbox) {
+            document.querySelectorAll('#' + CSS.escape(id)).forEach(function(el) {
+                if (isCheckbox) el.checked = value; else el.value = value;
             });
         }
 
-        // Enable Zoom checkbox
-        const enableZoomInput = document.getElementById('enableZoom');
-        if (enableZoomInput) {
-            enableZoomInput.addEventListener('change', function() {
-                currentSettings.enableZoom = this.checked;
-                saveSettings(currentSettings);
-            });
-        }
+        // Checkboxes (no visual apply needed)
+        bindAllVC('enablePan', 'change', function() {
+            currentSettings.enablePan = this.checked;
+            syncAllVC('enablePan', this.checked, true);
+            saveSettings(currentSettings);
+        });
+        bindAllVC('enableZoom', 'change', function() {
+            currentSettings.enableZoom = this.checked;
+            syncAllVC('enableZoom', this.checked, true);
+            saveSettings(currentSettings);
+        });
 
-        // Scale Factor input
-        const scaleInput = document.getElementById('cubeScale');
-        if (scaleInput) {
-            scaleInput.addEventListener('change', function() {
-                currentSettings.scaleFactor = parseFloat(this.value);
+        // Numeric inputs (apply + save)
+        var numericInputs = [
+            { id: 'cubeScale', key: 'scaleFactor' },
+            { id: 'gapSize', key: 'gapSize' },
+            { id: 'edgeGapRatio', key: 'edgeGapRatio' },
+            { id: 'thetaX', key: 'thetaX' },
+            { id: 'thetaY', key: 'thetaY' },
+            { id: 'thetaZ', key: 'thetaZ' },
+            { id: 'borderShade', key: 'borderShade' },
+            { id: 'borderWidth', key: 'borderWidth' },
+            { id: 'cubeMaxHeight', key: 'cubeMaxHeight', parseInt: true }
+        ];
+        numericInputs.forEach(function(cfg) {
+            bindAllVC(cfg.id, 'change', function() {
+                var val = cfg.parseInt ? (parseInt(this.value) || 0) : parseFloat(parseFloat(this.value).toFixed(2));
+                currentSettings[cfg.key] = val;
+                syncAllVC(cfg.id, this.value, false);
                 applySettings(currentSettings);
                 saveSettings(currentSettings);
             });
-        }
+        });
 
-        // Gap Size input
-        const gapSizeInput = document.getElementById('gapSize');
-        if (gapSizeInput) {
-            gapSizeInput.addEventListener('change', function() {
-                currentSettings.gapSize = parseFloat(this.value);
+        // Checkbox inputs (apply + save)
+        var checkboxInputs = [
+            { id: 'showBaseColor', key: 'showBaseColor' },
+            { id: 'autoBorderColor', key: 'autoBorderColor' }
+        ];
+        checkboxInputs.forEach(function(cfg) {
+            bindAllVC(cfg.id, 'change', function() {
+                currentSettings[cfg.key] = this.checked;
+                syncAllVC(cfg.id, this.checked, true);
                 applySettings(currentSettings);
                 saveSettings(currentSettings);
             });
-        }
+        });
 
-        // Edge Gap Ratio input
-        const edgeGapRatioInput = document.getElementById('edgeGapRatio');
-        if (edgeGapRatioInput) {
-            edgeGapRatioInput.addEventListener('change', function() {
-                currentSettings.edgeGapRatio = parseFloat(this.value);
+        // Color inputs
+        bindAllVC('baseColor', 'input', function() {
+            currentSettings.baseColor = this.value;
+            syncAllVC('baseColor', this.value, false);
+            applySettings(currentSettings);
+            saveSettings(currentSettings);
+        });
+        bindAllVC('borderColor', 'input', function() {
+            currentSettings.borderColor = this.value;
+            syncAllVC('borderColor', this.value, false);
+            if (!currentSettings.autoBorderColor) {
                 applySettings(currentSettings);
                 saveSettings(currentSettings);
+            }
+        });
+
+        // Debug Mode
+        bindAllVC('debugMode', 'change', function() {
+            currentSettings.debugMode = this.checked;
+            syncAllVC('debugMode', this.checked, true);
+            document.querySelectorAll('#debugTextColorGroup').forEach(function(el) {
+                el.style.display = currentSettings.debugMode ? 'block' : 'none';
             });
-        }
-
-        // Rotation X input (radians)
-        const thetaXInput = document.getElementById('thetaX');
-        if (thetaXInput) {
-            thetaXInput.addEventListener('change', function() {
-                currentSettings.thetaX = parseFloat(this.value);
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Rotation Y input (radians)
-        const thetaYInput = document.getElementById('thetaY');
-        if (thetaYInput) {
-            thetaYInput.addEventListener('change', function() {
-                currentSettings.thetaY = parseFloat(this.value);
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Rotation Z input (radians)
-        const thetaZInput = document.getElementById('thetaZ');
-        if (thetaZInput) {
-            thetaZInput.addEventListener('change', function() {
-                currentSettings.thetaZ = parseFloat(this.value);
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Base Color
-        const baseColorInput = document.getElementById('baseColor');
-        if (baseColorInput) {
-            baseColorInput.addEventListener('input', function() {
-                currentSettings.baseColor = this.value;
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Show Base Color checkbox
-        const showBaseColorInput = document.getElementById('showBaseColor');
-        if (showBaseColorInput) {
-            showBaseColorInput.addEventListener('change', function() {
-                currentSettings.showBaseColor = this.checked;
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Border Color
-        const borderColorInput = document.getElementById('borderColor');
-        if (borderColorInput) {
-            borderColorInput.addEventListener('input', function() {
-                currentSettings.borderColor = this.value;
-                if (!currentSettings.autoBorderColor) {
-                    applySettings(currentSettings);
-                    saveSettings(currentSettings);
-                }
-            });
-        }
-
-        // Auto Border Color checkbox
-        const autoBorderColorInput = document.getElementById('autoBorderColor');
-        if (autoBorderColorInput) {
-            autoBorderColorInput.addEventListener('change', function() {
-                currentSettings.autoBorderColor = this.checked;
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Border Shade input
-        const borderShadeInput = document.getElementById('borderShade');
-        if (borderShadeInput) {
-            borderShadeInput.addEventListener('change', function() {
-                currentSettings.borderShade = parseFloat(this.value);
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Border Width input
-        const borderWidthInput = document.getElementById('borderWidth');
-        if (borderWidthInput) {
-            borderWidthInput.addEventListener('change', function() {
-                currentSettings.borderWidth = parseFloat(this.value);
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Debug Mode checkbox
-        const debugModeInput = document.getElementById('debugMode');
-        if (debugModeInput) {
-            debugModeInput.addEventListener('change', function() {
-                currentSettings.debugMode = this.checked;
-
-                // Show/hide debug text color select
-                const debugTextColorGroup = document.getElementById('debugTextColorGroup');
-                if (debugTextColorGroup) {
-                    debugTextColorGroup.style.display = this.checked ? 'block' : 'none';
-                }
-
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Debug Text Color select
-        const debugTextColorSelect = document.getElementById('debugTextColor');
-        if (debugTextColorSelect) {
-            debugTextColorSelect.addEventListener('change', function() {
-                currentSettings.debugTextColor = this.value;
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
-
-        // Cube Max Height input
-        const cubeMaxHeightInput = document.getElementById('cubeMaxHeight');
-        if (cubeMaxHeightInput) {
-            cubeMaxHeightInput.addEventListener('change', function() {
-                currentSettings.cubeMaxHeight = parseInt(this.value) || 0;
-                applySettings(currentSettings);
-                saveSettings(currentSettings);
-            });
-        }
+            applySettings(currentSettings);
+            saveSettings(currentSettings);
+        });
+        bindAllVC('debugTextColor', 'change', function() {
+            currentSettings.debugTextColor = this.value;
+            syncAllVC('debugTextColor', this.value, false);
+            applySettings(currentSettings);
+            saveSettings(currentSettings);
+        });
 
         // Face color inputs
-        const faceKeys = ['U', 'D', 'R', 'L', 'F', 'B'];
-        faceKeys.forEach(face => {
-            const colorInput = document.getElementById('color' + face);
-            if (colorInput) {
-                colorInput.addEventListener('input', function() {
-                    currentSettings['color' + face] = this.value;
-                    applySettings(currentSettings);
-                    saveSettings(currentSettings);
-                });
-            }
+        var faceKeys = ['U', 'D', 'R', 'L', 'F', 'B'];
+        faceKeys.forEach(function(face) {
+            var id = 'color' + face;
+            bindAllVC(id, 'input', function() {
+                currentSettings[id] = this.value;
+                syncAllVC(id, this.value, false);
+                applySettings(currentSettings);
+                saveSettings(currentSettings);
+            });
         });
 
         // Reset button
@@ -676,6 +529,7 @@
         loadSettings,
         saveSettings,
         applySettings,
+        updateUI,
         exportSettingsJSON,
         DEFAULT_SETTINGS,
         BUILT_IN_PRESETS,

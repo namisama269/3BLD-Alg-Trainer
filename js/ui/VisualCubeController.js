@@ -34,12 +34,13 @@
 
         canvas = document.getElementById("cube");
         if (!canvas) {
-            console.warn("VisualCubeController: canvas element not found");
+            console.warn("VisualCubeController: cube container not found");
             return;
         }
-        console.log("VisualCubeController: canvas found");
+        console.log("VisualCubeController: cube container found");
 
-        ctx = canvas.getContext("2d");
+        // ctx kept for backward compat but not used in SVG mode
+        ctx = null;
 
         // Create VisualCube instance
         if (window.VisualCube) {
@@ -293,8 +294,8 @@
      * @param {string} initialRotations - Unused, kept for backward compatibility
      */
     function updateVirtualCube(initialRotations) {
-        if (!vc || !cube || !ctx) {
-            console.warn("updateVirtualCube: missing dependencies - vc:", !!vc, "cube:", !!cube, "ctx:", !!ctx);
+        if (!vc || !cube || !canvas) {
+            console.warn("updateVirtualCube: missing dependencies - vc:", !!vc, "cube:", !!cube, "container:", !!canvas);
             return;
         }
 
@@ -321,7 +322,7 @@
             }
         }
 
-        vc.drawCube(ctx);
+        vc.drawSVG(canvas);
     }
 
     /**
@@ -355,6 +356,56 @@
     function getContext() {
         return ctx;
     }
+
+    /**
+     * Export cube SVG as a standalone file in a new tab (transparent background).
+     */
+    function exportSVG() {
+        var svg = canvas && canvas.querySelector('svg.vc-svg');
+        if (!svg) return;
+        var clone = svg.cloneNode(true);
+        clone.removeAttribute('style');
+        clone.setAttribute('width', vc.width);
+        clone.setAttribute('height', vc.height);
+        var svgStr = new XMLSerializer().serializeToString(clone);
+        var blob = new Blob([svgStr], { type: 'image/svg+xml' });
+        window.open(URL.createObjectURL(blob), '_blank');
+    }
+
+    /**
+     * Export cube as PNG with transparent background.
+     */
+    function exportPNG() {
+        var svg = canvas && canvas.querySelector('svg.vc-svg');
+        if (!svg) return;
+        var clone = svg.cloneNode(true);
+        clone.removeAttribute('style');
+        clone.setAttribute('width', vc.width);
+        clone.setAttribute('height', vc.height);
+        var svgStr = new XMLSerializer().serializeToString(clone);
+        var img = new Image();
+        img.onload = function() {
+            var c = document.createElement('canvas');
+            c.width = vc.width;
+            c.height = vc.height;
+            var cx = c.getContext('2d');
+            // Transparent background — don't fill
+            cx.drawImage(img, 0, 0);
+            var a = document.createElement('a');
+            a.download = 'cube.png';
+            a.href = c.toDataURL('image/png');
+            a.click();
+        };
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+    }
+
+    // Wire up export buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        var svgBtn = document.getElementById('exportSvgBtn');
+        if (svgBtn) svgBtn.addEventListener('click', function(e) { e.preventDefault(); exportSVG(); });
+        var pngBtn = document.getElementById('exportPngBtn');
+        if (pngBtn) pngBtn.addEventListener('click', function(e) { e.preventDefault(); exportPNG(); });
+    });
 
     // Export to global scope
     window.VisualCubeController = {

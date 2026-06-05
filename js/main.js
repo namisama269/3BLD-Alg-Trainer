@@ -53,6 +53,19 @@
         // Initialize keymap editor
         initKeymapEditor();
 
+        // Initialize algorithm viewer
+        if (window.AlgorithmViewer) {
+            AlgorithmViewer.init();
+        }
+
+        // MaskEditor is now modal-based — no inline init needed
+
+        // Initialize orientation selectors
+        if (window.OrientationSelector) {
+            OrientationSelector.create('cn1Selector', 'colourneutrality1', { allowCustom: true });
+            OrientationSelector.create('scOrientationSelector', 'smartCubeOrientation', { allowCustom: true });
+        }
+
         // Initial render
         if (cube) {
             cube.resetCube();
@@ -72,7 +85,225 @@
             updateVirtualCube();
         }
 
+        // Show subset checkboxes and statistics on startup
+        refreshAlgDisplay();
+
+        // Refresh stats when subset selection changes
+        if (window.AlgorithmList && AlgorithmList.setOnSubsetSelectionChanged) {
+            AlgorithmList.setOnSubsetSelectionChanged(refreshAlgDisplay);
+        }
+
         console.log("Alg Trainer: Initialization complete");
+    }
+
+    /**
+     * Open a modal showing all bookmarked (starred) algorithms with cube preview.
+     */
+    function openBookmarkViewer() {
+        if (!window.TrainerCore) return;
+        var bookmarks = TrainerCore.getBookmarks();
+        if (!bookmarks || bookmarks.size === 0) {
+            alert('No bookmarked algorithms yet. Star cases during training to add them here.');
+            return;
+        }
+
+        // Ensure modal exists
+        var modal = document.getElementById('bookmarkViewerModal');
+        if (!modal) {
+            var html =
+                '<div class="modal fade" id="bookmarkViewerModal" tabindex="-1" aria-hidden="true">' +
+                '<div class="modal-dialog modal-lg modal-dialog-scrollable">' +
+                '<div class="modal-content">' +
+                '<div class="modal-header">' +
+                '<h5 class="modal-title"><i class="bi bi-star-fill text-warning"></i> Starred Algorithms</h5>' +
+                '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' +
+                '</div>' +
+                '<div class="modal-body">' +
+                '<div class="row g-3">' +
+                '<div class="col-md-5"><div id="bookmarkList" style="max-height:500px;overflow-y:auto;"></div></div>' +
+                '<div class="col-md-7"><div id="bookmarkPreview" style="max-width:100%;"></div>' +
+                '<p id="bookmarkSelectedAlg" class="mt-2 mb-0 fw-medium text-center" style="font-family:\'Roboto Mono\',monospace;font-size:0.9rem;">Select an algorithm to preview</p></div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="modal-footer">' +
+                '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>' +
+                '</div></div></div></div>';
+            document.body.insertAdjacentHTML('beforeend', html);
+            modal = document.getElementById('bookmarkViewerModal');
+        }
+
+        // Populate list
+        var list = document.getElementById('bookmarkList');
+        list.innerHTML = '';
+        var listGroup = document.createElement('div');
+        listGroup.className = 'list-group';
+        var bookmarkArr = Array.from(bookmarks);
+        var selectedEl = null;
+
+        // Preview VisualCube (reuse pattern from AlgorithmViewer)
+        var previewVC = null;
+        var previewCube = new RubiksCube();
+        var previewContainer = document.getElementById('bookmarkPreview');
+
+        function syncPreviewVC() {
+            var src = window.vc;
+            if (!src) return;
+            if (!previewVC) {
+                previewVC = new VisualCube(src.width, src.height, src.scale,
+                    src.thetaX, src.thetaY, src.thetaZ, src.cubeSize, src.gapSize, src.edgeGapRatio);
+            } else {
+                previewVC.scale = src.scale;
+                previewVC.thetaX = src.thetaX;
+                previewVC.thetaY = src.thetaY;
+                previewVC.thetaZ = src.thetaZ;
+                previewVC.gapSize = src.gapSize;
+                previewVC.edgeGapRatio = src.edgeGapRatio;
+                previewVC.faceStickers = VisualCube.getFaceStickers(src.cubeSize, src.gapSize, src.edgeGapRatio);
+            }
+            previewVC.showBaseColor = src.showBaseColor;
+            previewVC.baseColor = src.baseColor;
+            previewVC.stickerBorderColor = src.stickerBorderColor;
+            previewVC.stickerBorderShade = src.stickerBorderShade;
+            previewVC.stickerBorderWidth = src.stickerBorderWidth;
+            previewVC.debugMode = false;
+            previewVC.stickerColors = {};
+            for (var key in src.stickerColors) previewVC.stickerColors[key] = src.stickerColors[key];
+        }
+
+        function showAlgPreview(algString) {
+            syncPreviewVC();
+            if (!previewVC || !previewCube) return;
+
+            var moves = algString;
+            if (window.isCommutator && isCommutator(algString)) moves = commToMoves(algString);
+            if (window.alg && window.alg.cube && window.alg.cube.invert) {
+                try { moves = alg.cube.invert(moves); } catch (e) { if (window.invertMoves) moves = invertMoves(moves); }
+            } else if (window.invertMoves) { moves = invertMoves(moves); }
+
+            previewCube.resetCube();
+            var cn1El = document.getElementById('colourneutrality1');
+            var cn1 = cn1El ? cn1El.value : (localStorage.getItem('colourneutrality1') || '');
+            if (cn1 && cn1.trim()) previewCube.doAlgorithm(cn1.trim());
+            previewCube.resetMask();
+            previewCube.doAlgorithm(moves);
+
+            var useMaskEl = document.getElementById('useMask');
+            var useMask = useMaskEl ? useMaskEl.checked : true;
+            var initialMaskEl = document.getElementById('initialMask');
+            var initialMask = (useMask && initialMaskEl) ? initialMaskEl.value : '';
+            var cubeStr = (initialMask && initialMask.length === 54) ? previewCube.toInitialMaskedString(initialMask) : previewCube.toString();
+            var finalMaskEl = document.getElementById('finalMask');
+            var finalMask = (useMask && finalMaskEl) ? finalMaskEl.value : '';
+            if (finalMask && finalMask.length === 54) {
+                for (var k = 0; k < 54; k++) {
+                    if (finalMask[k] === 'x') cubeStr = cubeStr.substring(0, k) + 'x' + cubeStr.substring(k + 1);
+                }
+            }
+
+            previewVC.cubeString = cubeStr;
+            previewVC.drawSVG(previewContainer);
+            var label = document.getElementById('bookmarkSelectedAlg');
+            if (label) label.textContent = algString;
+        }
+
+        bookmarkArr.forEach(function(algStr, idx) {
+            var item = document.createElement('div');
+            item.className = 'list-group-item list-group-item-action';
+            item.style.cssText = 'cursor:pointer; font-family:"Roboto Mono",monospace; font-size:0.82rem; display:flex; align-items:center; gap:8px; padding:6px 10px;';
+
+            var num = document.createElement('span');
+            num.textContent = (idx + 1) + '.';
+            num.style.cssText = 'opacity:0.45; min-width:2.2em; text-align:right; font-size:0.78rem; flex-shrink:0;';
+
+            var text = document.createElement('span');
+            text.textContent = algStr;
+            text.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;';
+
+            var unstarBtn = document.createElement('button');
+            unstarBtn.className = 'btn btn-link text-warning p-0';
+            unstarBtn.innerHTML = '<i class="bi bi-star-fill"></i>';
+            unstarBtn.title = 'Remove bookmark';
+            unstarBtn.style.cssText = 'font-size:0.85rem; flex-shrink:0;';
+
+            (function(alg, el, idx) {
+                el.addEventListener('click', function() {
+                    if (selectedEl) selectedEl.classList.remove('active');
+                    el.classList.add('active');
+                    selectedEl = el;
+                    showAlgPreview(alg);
+                });
+                unstarBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (!confirm('Remove bookmark for this algorithm?')) return;
+                    TrainerCore.toggleBookmark(alg);
+                    el.remove();
+                    if (selectedEl === el) {
+                        previewContainer.innerHTML = '';
+                        var lbl = document.getElementById('bookmarkSelectedAlg');
+                        if (lbl) lbl.textContent = 'Select an algorithm to preview';
+                        selectedEl = null;
+                    }
+                    var remaining = document.querySelectorAll('#bookmarkList .list-group-item');
+                    if (remaining.length === 0) {
+                        list.innerHTML = '<p class="text-muted text-center py-3">No bookmarked algorithms.</p>';
+                    }
+                });
+            })(algStr, item, idx);
+
+            item.appendChild(num);
+            item.appendChild(text);
+            item.appendChild(unstarBtn);
+            listGroup.appendChild(item);
+        });
+
+        list.appendChild(listGroup);
+
+        // Show modal
+        var bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+        bsModal.show();
+    }
+
+    /**
+     * Refresh subset checkboxes and algorithm statistics from the current textarea content.
+     */
+    var _statsTimer = null;
+    function refreshAlgDisplay() {
+        if (!window.AlgorithmList) return;
+        AlgorithmList.updateSubsets();
+        // Debounce the expensive statistics computation
+        clearTimeout(_statsTimer);
+        _statsTimer = setTimeout(refreshAlgStatistics, 50);
+    }
+
+    var _statsVersion = 0;
+    function refreshAlgStatistics() {
+        if (!window.AlgorithmList) return;
+        var textarea = document.getElementById("userDefinedAlgs");
+        if (!textarea) return;
+
+        var parsed = AlgorithmList.parseSubsets(textarea.value);
+        var enabled = AlgorithmList.getEnabledSubsets();
+        var hasSubsets = parsed.subsets.length > 1 || (parsed.subsets.length === 1 && parsed.subsets[0].name !== "Uncategorized");
+        var algs;
+        if (hasSubsets) {
+            algs = [];
+            parsed.subsets.forEach(function(s) {
+                if (enabled.has(s.name)) {
+                    algs = algs.concat(s.algs);
+                }
+            });
+        } else {
+            algs = parsed.allAlgs;
+        }
+
+        // Compute movecounts async so UI stays responsive
+        // Keep the old table visible until the new one is ready
+        var version = ++_statsVersion;
+        var capturedAlgs = algs;
+        setTimeout(function() {
+            if (version !== _statsVersion) return; // stale
+            AlgorithmList.updateAlgsetStatistics(capturedAlgs);
+        }, 10);
     }
 
     /**
@@ -121,6 +352,12 @@
                     if (algKey) {
                         TrainerCore.recordSolve(algKey, solveTime.timeValue());
                         updateCaseInfoDisplay();
+                    }
+                    // Save solve time to the current history entry
+                    var history = TrainerCore.getAlgorithmHistory();
+                    var idx = TrainerCore.getHistoryIndex();
+                    if (history && history[idx]) {
+                        history[idx].solveTime = solveTime;
                     }
                 }
             });
@@ -405,13 +642,56 @@
         const updateSetsBtn = document.getElementById("updateSetsBtn");
         if (updateSetsBtn) {
             updateSetsBtn.addEventListener("click", function() {
-                if (window.AlgorithmList && window.AlgorithmList.updateSubsets) {
-                    AlgorithmList.updateSubsets();
+                // Convert Google Sheets format (quoted multi-line cells) to native ! syntax
+                var textarea = document.getElementById("userDefinedAlgs");
+                if (textarea && window.AlgorithmList && AlgorithmList.convertGoogleSheetsFormat) {
+                    var converted = AlgorithmList.convertGoogleSheetsFormat(textarea.value);
+                    if (converted !== textarea.value) {
+                        textarea.value = converted;
+                        localStorage.setItem("userDefinedAlgs", converted);
+                    }
+                }
+                refreshAlgDisplay();
+            });
+        }
+
+        // Reload settings into modal when it opens (syncs config screen → modal)
+        const settingsModal = document.getElementById("settingsModal");
+        if (settingsModal) {
+            settingsModal.addEventListener("shown.bs.modal", function() {
+                if (window.SettingsManager) {
+                    SettingsManager.loadAllSettings();
+                }
+                if (window.VisualCubeSettings) {
+                    var vcSettings = VisualCubeSettings.loadSettings();
+                    VisualCubeSettings.updateUI(vcSettings);
+                }
+                // Init modal orientation selectors on first open
+                if (window.OrientationSelector) {
+                    OrientationSelector.create('mCn1Selector', 'colourneutrality1', { allowCustom: true });
+                    OrientationSelector.create('mScOrientationSelector', 'smartCubeOrientation', { allowCustom: true });
                 }
             });
         }
 
-        // Start Training button
+        // Auto-update sets when Algorithms modal closes
+        const algorithmsModal = document.getElementById("algorithmsModal");
+        if (algorithmsModal) {
+            algorithmsModal.addEventListener("hidden.bs.modal", function() {
+                refreshAlgDisplay();
+            });
+        }
+
+        // Keep subsets and stats live while editing
+        const userAlgsTextarea = document.getElementById("userDefinedAlgs");
+        if (userAlgsTextarea) {
+            let debounceTimer = null;
+            userAlgsTextarea.addEventListener("input", function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(refreshAlgDisplay, 400);
+            });
+        }
+
         // Start Training button
         const startTrainingBtn = document.getElementById("startTrainingBtn");
         if (startTrainingBtn) {
@@ -463,23 +743,11 @@
             });
         }
 
-        // Bookmark filter toggle
+        // Bookmark viewer button — opens a modal showing all starred algorithms
         const bookmarkFilterBtn = document.getElementById("bookmarkFilterBtn");
         if (bookmarkFilterBtn) {
             bookmarkFilterBtn.addEventListener("click", function() {
-                if (window.TrainerCore) {
-                    var active = !TrainerCore.isBookmarkFilterActive();
-                    TrainerCore.setBookmarkFilter(active);
-                    if (active) {
-                        bookmarkFilterBtn.classList.remove("btn-outline-secondary");
-                        bookmarkFilterBtn.classList.add("btn-warning");
-                        bookmarkFilterBtn.innerHTML = '<i class="bi bi-star-fill"></i>';
-                    } else {
-                        bookmarkFilterBtn.classList.remove("btn-warning");
-                        bookmarkFilterBtn.classList.add("btn-outline-secondary");
-                        bookmarkFilterBtn.innerHTML = '<i class="bi bi-star"></i>';
-                    }
-                }
+                openBookmarkViewer();
             });
         }
 

@@ -19,6 +19,64 @@
     // Enabled subset names
     let enabledSubsets = new Set();
 
+    // Callback when subset selection changes
+    let onSubsetSelectionChanged = null;
+
+    /**
+     * Convert Google Sheets multi-line cell format to native multi-alg format.
+     * Sheets wraps multi-line cells in double quotes with newlines inside:
+     *   "(U) R' U' R2 U R2' U' R\n(U2) R' U2' R2 U R2' U' R"
+     * This converts them to:
+     *   (U) R' U' R2 U R2' U' R ! (U2) R' U2' R2 U R2' U' R
+     * @param {string} input - Raw textarea content
+     * @returns {string} Converted content
+     */
+    function convertGoogleSheetsFormat(input) {
+        var lines = input.split('\n');
+        var result = [];
+        var inQuote = false;
+        var accumulated = [];
+
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+
+            if (!inQuote) {
+                // Check if line starts with a double quote
+                if (line.length > 0 && line[0] === '"') {
+                    // Check if it also ends with a quote (single-line quoted cell)
+                    if (line.length > 1 && line[line.length - 1] === '"') {
+                        // Single line quoted — just strip quotes and join inner newlines
+                        result.push(line.substring(1, line.length - 1).trim());
+                    } else {
+                        // Start of multi-line quoted cell
+                        inQuote = true;
+                        accumulated = [line.substring(1).trim()];
+                    }
+                } else {
+                    result.push(line);
+                }
+            } else {
+                // Inside a quoted cell
+                if (line.length > 0 && line[line.length - 1] === '"') {
+                    // End of multi-line quoted cell
+                    accumulated.push(line.substring(0, line.length - 1).trim());
+                    result.push(accumulated.filter(function(s) { return s !== ''; }).join(' ! '));
+                    accumulated = [];
+                    inQuote = false;
+                } else {
+                    accumulated.push(line.trim());
+                }
+            }
+        }
+
+        // If we ended while still in a quote, flush what we have
+        if (accumulated.length > 0) {
+            result.push(accumulated.filter(function(s) { return s !== ''; }).join(' ! '));
+        }
+
+        return result.join('\n');
+    }
+
     /**
      * Fix algorithm formatting (removes brackets for now)
      * @param {string[]} algorithms - Array of algorithms
@@ -152,18 +210,16 @@
             return [];
         }
 
-        // First validate all algs
-        findMistakesInUserAlgs(textarea.value.split("\n"));
-
-        // Parse subsets from the textarea
+        // Always re-parse fresh from the textarea to avoid stale cached data
         const { subsets, allAlgs } = parseSubsets(textarea.value);
         parsedSubsets = subsets;
 
-        // Load enabled subsets from localStorage
         loadEnabledSubsets();
 
-        // If no subsets defined or all enabled, return all algs
-        if (subsets.length === 0 || subsets.length === 1 && subsets[0].name === "Uncategorized") {
+        const hasNamedSubsets = subsets.length > 1 ||
+            (subsets.length === 1 && subsets[0].name !== "Uncategorized");
+
+        if (!hasNamedSubsets) {
             algList = allAlgs;
         } else if (enabledSubsets.size === 0) {
             // No subsets selected = treat as all selected
@@ -181,6 +237,7 @@
         if (algList.length === 0) {
             alert("Please enter some algs into the User Defined Algs box.");
         }
+
 
         return algList;
     }
@@ -260,6 +317,7 @@
             if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
                 window.TrainerCore.resetShuffledIndices();
             }
+            if (onSubsetSelectionChanged) onSubsetSelectionChanged();
         });
 
         const unselectAllBtn = document.createElement("button");
@@ -273,6 +331,7 @@
             if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
                 window.TrainerCore.resetShuffledIndices();
             }
+            if (onSubsetSelectionChanged) onSubsetSelectionChanged();
         });
 
         btnContainer.appendChild(selectAllBtn);
@@ -304,6 +363,7 @@
                 if (window.TrainerCore && window.TrainerCore.resetShuffledIndices) {
                     window.TrainerCore.resetShuffledIndices();
                 }
+                if (onSubsetSelectionChanged) onSubsetSelectionChanged();
             });
 
             const label = document.createElement("label");
@@ -436,19 +496,44 @@
      * @param {string[]} list - Algorithm list
      */
     function updateAlgsetStatistics(list) {
-        // Requires AlgorithmUtils.averageMovecount
-        const averageMovecountFn = window.averageMovecount || (window.AlgorithmUtils && window.AlgorithmUtils.averageMovecount);
-
-        if (!averageMovecountFn) {
-            console.warn("averageMovecount function not available");
+        if (!window.alg || !window.alg.cube) {
+            console.warn("alg.cube library not available");
             return;
         }
 
+        // Parse each algorithm once, then compute all 4 metrics from cached moves
+        var totalBtm = 0, totalBqtm = 0, totalBtmAuf = 0, totalBqtmAuf = 0;
+
+        for (var i = 0; i < list.length; i++) {
+            var topAlg = list[i].split("!")[0];
+            topAlg = topAlg.replace(/\[|\]|\)|\(/g, "");
+            topAlg = commToMoves(topAlg);
+
+            var movesWithAuf = alg.cube.simplify(alg.cube.expand(alg.cube.fromString(topAlg)));
+
+            // With AUF
+            totalBtmAuf += alg.cube.countMoves(movesWithAuf, { "metric": "btm" });
+            totalBqtmAuf += alg.cube.countMoves(movesWithAuf, { "metric": "bqtm" });
+
+            // Strip AUF from a copy
+            var moves = movesWithAuf.slice();
+            while (moves.length > 0 && (moves[0].base === "U" || moves[0].base === "y")) {
+                moves.shift();
+            }
+            while (moves.length > 0 && (moves[moves.length - 1].base === "U" || moves[moves.length - 1].base === "y")) {
+                moves.pop();
+            }
+
+            totalBtm += alg.cube.countMoves(moves, { "metric": "btm" });
+            totalBqtm += alg.cube.countMoves(moves, { "metric": "bqtm" });
+        }
+
+        var n = list.length || 1;
         const stats = {
-            "STM": averageMovecountFn(list, "btm", false).toFixed(3),
-            "SQTM": averageMovecountFn(list, "bqtm", false).toFixed(3),
-            "STM (including AUF)": averageMovecountFn(list, "btm", true).toFixed(3),
-            "SQTM (including AUF)": averageMovecountFn(list, "bqtm", true).toFixed(3),
+            "STM": (totalBtm / n).toFixed(3),
+            "SQTM": (totalBqtm / n).toFixed(3),
+            "STM (including AUF)": (totalBtmAuf / n).toFixed(3),
+            "SQTM (including AUF)": (totalBqtmAuf / n).toFixed(3),
             "Number of algs": list.length
         };
 
@@ -539,6 +624,7 @@
 
     // Export to global scope
     window.AlgorithmList = {
+        convertGoogleSheetsFormat,
         fixAlgorithms,
         findMistakesInUserAlgs,
         createAlgList,
@@ -555,7 +641,8 @@
         getParsedSubsets,
         getEnabledSubsets,
         setEnabledSubsets,
-        clearEnabledSubsets
+        clearEnabledSubsets,
+        setOnSubsetSelectionChanged: function(cb) { onSubsetSelectionChanged = cb; }
     };
 
     // Also export individual functions for backward compatibility

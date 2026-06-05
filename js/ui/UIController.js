@@ -150,7 +150,7 @@
     function setAlgDisplay(text) {
         const algdisp = document.getElementById("algdisp");
         if (algdisp) {
-            algdisp.innerHTML = text;
+            algdisp.innerHTML = window.colorizeAlgorithm ? colorizeAlgorithm(text) : text;
         }
     }
 

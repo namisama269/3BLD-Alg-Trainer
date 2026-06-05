@@ -1,4 +1,21 @@
-// Last edited: 2025-11-16
+/**
+ * VisualCube — 3D Rubik's Cube renderer (Canvas + SVG)
+ * @version 2025-06-02
+ * @license MIT
+ * @author tao-yu, namisama269
+ *
+ * Standalone library — no dependencies. Renders a 3x3 (or NxN) cube
+ * with configurable colors, rotation, gap size, masks, and debug mode.
+ *
+ * Render modes:
+ *   drawCube(ctx)        — Canvas 2D context
+ *   drawSVG(container)   — SVG into a DOM element (scales via viewBox)
+ *
+ * Usage:
+ *   const vc = new VisualCube(1200, 1200, 360, -0.4, -0.6, 0, 3, 0.08);
+ *   vc.cubeString = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB";
+ *   vc.drawSVG(document.getElementById('cube'));
+ */
 
 class VisualCube {
     constructor(width, height, scale, thetaX, thetaY, thetaZ, cubeSize, gapSize, edgeGapRatio = VisualCube.EDGE_GAP_RATIO_DEFAULT) {
@@ -228,6 +245,200 @@ class VisualCube {
             const bordersToUse = hasMask ? faceBorders : borderColor;
             this.drawStickers(ctx, faceColors, bordersToUse, this.faceStickers[face], true);
         }
+    }
+
+    // ===== SVG Rendering =====
+
+    /**
+     * Render the cube as SVG into a container element.
+     * Same 3D math as drawCube, but outputs SVG polygons.
+     * Reuses SVG element and polygon nodes on subsequent calls for performance.
+     * @param {HTMLElement} container - DOM element to render into
+     */
+    drawSVG(container) {
+        if (!container) return;
+
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+
+        // Create or reuse SVG element
+        let svg = container.querySelector('svg.vc-svg');
+        let isFirstRender = false;
+        if (!svg) {
+            isFirstRender = true;
+            svg = document.createElementNS(SVG_NS, 'svg');
+            svg.classList.add('vc-svg');
+            svg.setAttribute('viewBox', '0 0 ' + this.width + ' ' + this.height);
+            svg.setAttribute('xmlns', SVG_NS);
+            svg.setAttribute('shape-rendering', 'geometricPrecision');
+            svg.style.width = '100%';
+            svg.style.height = 'auto';
+            svg.style.display = 'block';
+            container.innerHTML = '';
+            container.appendChild(svg);
+        }
+
+        // Rotate cube vertices (same as drawCube)
+        let newPoints = [];
+        this.points.forEach((pt) => {
+            let r = [[pt[0]], [pt[1]], [pt[2]]];
+            r = VisualCube.matrixProd(VisualCube.getRotationMatrix(this.thetaZ, "z"), r);
+            r = VisualCube.matrixProd(VisualCube.getRotationMatrix(this.thetaY, "y"), r);
+            r = VisualCube.matrixProd(VisualCube.getRotationMatrix(this.thetaX, "x"), r);
+            newPoints.push([r[0], r[1], r[2]]);
+        });
+
+        let newFaceBase = {
+            "U": [newPoints[4], newPoints[5], newPoints[1], newPoints[0]],
+            "D": [newPoints[7], newPoints[6], newPoints[2], newPoints[3]],
+            "R": [newPoints[1], newPoints[5], newPoints[6], newPoints[2]],
+            "L": [newPoints[4], newPoints[0], newPoints[3], newPoints[7]],
+            "F": [newPoints[0], newPoints[1], newPoints[2], newPoints[3]],
+            "B": [newPoints[4], newPoints[5], newPoints[6], newPoints[7]]
+        };
+
+        // Sort faces back-to-front
+        let dists = [];
+        for (const [k, v] of Object.entries(newFaceBase)) {
+            dists.push([VisualCube.distToCam(v, this.width), k]);
+        }
+        dists.sort();
+        dists.reverse();
+
+        let cubeData = VisualCube.convertCubeString(this.cubeString);
+        this.renderCounter = 1;
+        const borderColor = this._getBorderColor();
+
+        // Collect all polygons to render
+        let polygonData = [];
+
+        for (let i = 0; i < dists.length; ++i) {
+            let face = dists[i][1];
+            if (this.renderedFaces && this.renderedFaces[face] === false) continue;
+
+            // Base color quad
+            if (this.showBaseColor) {
+                const basePts = this._projectSticker(this.faceBase[face]);
+                const baseBorder = this.baseColor || borderColor;
+                polygonData.push({ points: basePts, fill: this.baseColor || VisualCube.BLACK, stroke: baseBorder, strokeWidth: this.stickerBorderWidth || 2.5, lineJoin: 'round' });
+            }
+
+            // Sticker colors + mask handling (same logic as drawCube)
+            let faceColors = Array.from(cubeData[face]);
+            let faceBorders = null;
+            const hasMask = /x/i.test(cubeData[face]);
+            if (hasMask) {
+                faceBorders = new Array(faceColors.length).fill(borderColor);
+                for (let j = 0; j < faceColors.length; j++) {
+                    const masked = faceColors[j] === VisualCube.MASK_CHAR || faceColors[j] === VisualCube.MASK_CHAR.toUpperCase();
+                    if (!masked) continue;
+                    if (this.showBaseColor) {
+                        faceColors[j] = VisualCube.BASE_COLOR_KEY;
+                        faceBorders[j] = borderColor;
+                    } else {
+                        faceColors[j] = VisualCube.MASK_CHAR;
+                        faceBorders[j] = borderColor;
+                    }
+                }
+            }
+
+            const stickers = this.faceStickers[face];
+            const borderArray = hasMask ? faceBorders : null;
+            const fallbackBorderVal = hasMask ? null : borderColor;
+
+            for (let si = 0; si < stickers.length; si++) {
+                const projected = this._projectSticker(stickers[si]);
+                const colorKey = faceColors[si];
+                const fill = this._resolveStickerColor(colorKey);
+                const stickerBorder = borderArray ? (borderArray[si] || fallbackBorderVal) : borderColor;
+
+                const entry = { points: projected, fill: fill, stroke: stickerBorder || VisualCube.BLACK, strokeWidth: this.stickerBorderWidth || 2.5, lineJoin: 'round' };
+
+                // Debug label
+                if (this.debugMode) {
+                    const cx = projected.reduce((a, p) => a + p[0], 0) / projected.length;
+                    const cy = projected.reduce((a, p) => a + p[1], 0) / projected.length;
+                    entry.label = String(this.renderCounter++);
+                    entry.labelX = cx;
+                    entry.labelY = cy;
+                }
+
+                polygonData.push(entry);
+            }
+        }
+
+        // Render to SVG: reuse or create elements
+        // Ensure we have enough polygon elements
+        let existingPolygons = svg.querySelectorAll('polygon.vc-poly');
+        let existingTexts = svg.querySelectorAll('text.vc-label');
+
+        // Remove excess elements
+        while (existingPolygons.length > polygonData.length) {
+            svg.removeChild(existingPolygons[existingPolygons.length - 1]);
+            existingPolygons = svg.querySelectorAll('polygon.vc-poly');
+        }
+
+        // Remove all old text labels (rebuilt each frame since count varies)
+        existingTexts.forEach(t => t.remove());
+
+        for (let i = 0; i < polygonData.length; i++) {
+            const d = polygonData[i];
+            let poly;
+            if (i < existingPolygons.length) {
+                poly = existingPolygons[i];
+            } else {
+                poly = document.createElementNS(SVG_NS, 'polygon');
+                poly.classList.add('vc-poly');
+                svg.appendChild(poly);
+            }
+
+            const pointsStr = d.points.map(p => p[0] + ',' + p[1]).join(' ');
+            poly.setAttribute('points', pointsStr);
+            poly.setAttribute('fill', d.fill);
+            poly.setAttribute('stroke', d.stroke);
+            poly.setAttribute('stroke-width', d.strokeWidth);
+            poly.setAttribute('stroke-linejoin', d.lineJoin || 'miter');
+
+            if (d.label) {
+                const useLight = this.debugTextColor === "light";
+                // Stroke text (outline)
+                let textStroke = document.createElementNS(SVG_NS, 'text');
+                textStroke.classList.add('vc-label');
+                textStroke.setAttribute('x', d.labelX);
+                textStroke.setAttribute('y', d.labelY);
+                textStroke.setAttribute('text-anchor', 'middle');
+                textStroke.setAttribute('dominant-baseline', 'central');
+                textStroke.setAttribute('font-size', '32');
+                textStroke.setAttribute('font-weight', 'bold');
+                textStroke.setAttribute('font-family', "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif");
+                textStroke.setAttribute('stroke', useLight ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.75)');
+                textStroke.setAttribute('stroke-width', '3');
+                textStroke.setAttribute('fill', useLight ? '#f2f2f2' : '#111111');
+                textStroke.textContent = d.label;
+                svg.appendChild(textStroke);
+            }
+        }
+    }
+
+    /**
+     * Project a sticker's 3D points to 2D screen coordinates.
+     * @param {Array} sticker - Array of [x,y,z] points
+     * @returns {Array} Array of [x,y] screen points
+     */
+    _projectSticker(sticker) {
+        const result = [];
+        for (let i = 0; i < sticker.length; i++) {
+            const pt = sticker[i];
+            let r = [[pt[0]], [pt[1]], [pt[2]]];
+            r = VisualCube.matrixProd(VisualCube.getRotationMatrix(this.thetaZ, "z"), r);
+            r = VisualCube.matrixProd(VisualCube.getRotationMatrix(this.thetaY, "y"), r);
+            r = VisualCube.matrixProd(VisualCube.getRotationMatrix(this.thetaX, "x"), r);
+            const p = VisualCube.matrixProd(VisualCube.PROJECTION, r);
+            result.push([
+                p[0][0] * this.scale + this.width / 2,
+                p[1][0] * this.scale + this.height / 2
+            ]);
+        }
+        return result;
     }
 
     _getBorderColor() {
@@ -620,12 +831,13 @@ class VisualCube {
     }
 }
 
+VisualCube.VERSION = "2025-06-02";
 VisualCube.BLACK = "black";
 VisualCube.WHITE = "white";
 VisualCube.YELLOW = "#F0FF00";
 VisualCube.RED = "#E8120A";
 VisualCube.ORANGE = "#FB8C00";
-VisualCube.GREEN = "#66FF33";
+VisualCube.GREEN = "#00d800";
 VisualCube.BLUE = "#2055FF";
 VisualCube.MASK_CHAR = "x";
 VisualCube.MASK_DARK_COLOR = "#b0b0b0";

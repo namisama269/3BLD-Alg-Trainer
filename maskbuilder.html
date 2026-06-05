@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mask Builder</title>
+    <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        .canvas-wrapper { display: flex; justify-content: center; }
+        .canvas-wrapper canvas { max-width: 100%; cursor: pointer; }
+        .preset-item { cursor: pointer; }
+        .preset-item:hover { background: var(--bs-tertiary-bg); }
+        .preset-item.active { border-color: var(--bs-primary) !important; background: rgba(var(--bs-primary-rgb), 0.08); }
+        code { font-size: 0.75rem; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div class="container py-4" style="max-width: 800px;">
+        <h4 class="mb-1">Mask Builder</h4>
+        <p class="text-muted small mb-4">Click stickers to toggle masked (gray) vs visible. Save presets for reuse.</p>
+
+        <div class="d-flex justify-content-center mb-3">
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary active" id="modePiece">Piece</button>
+                <button type="button" class="btn btn-outline-primary" id="modeSticker">Sticker</button>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper mb-3">
+            <canvas id="maskCanvas"></canvas>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2 mb-3">
+            <button class="btn btn-outline-secondary btn-sm" id="showAllBtn">Show All</button>
+            <button class="btn btn-outline-secondary btn-sm" id="maskAllBtn">Mask All</button>
+            <button class="btn btn-outline-secondary btn-sm" id="invertBtn">Invert</button>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label small fw-semibold">Mask String</label>
+            <div class="input-group input-group-sm">
+                <input type="text" id="maskString" class="form-control font-monospace" maxlength="54" placeholder="54 character mask">
+                <button class="btn btn-outline-secondary" id="copyBtn" title="Copy"><i class="bi bi-clipboard"></i></button>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">Save as Preset</label>
+            <div class="input-group input-group-sm">
+                <input type="text" id="presetName" class="form-control" placeholder="Preset name (e.g. OLL mask)">
+                <button class="btn btn-primary" id="savePresetBtn">Save</button>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">Saved Presets</label>
+            <div id="presetsList"></div>
+            <div class="d-flex gap-2 mt-2">
+                <button class="btn btn-outline-secondary btn-sm" id="exportPresetsBtn"><i class="bi bi-download"></i> Export All</button>
+                <button class="btn btn-outline-secondary btn-sm" id="importPresetsBtn"><i class="bi bi-upload"></i> Import</button>
+                <input type="file" id="importFile" accept=".json" style="display:none">
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // ===== Isometric cube net (adapted from scramble-finder) =====
+        var CANVAS_W = 600;
+        var MARGIN = 50;
+        var PGRAM_SCALE = 0.5;
+        var STICKER_SIZE = (CANVAS_W - 2 * MARGIN) / (9 + 3 * PGRAM_SCALE);
+        var CANVAS_H = 2 * MARGIN + (3 * PGRAM_SCALE + 6) * STICKER_SIZE;
+        var PH = STICKER_SIZE * PGRAM_SCALE; // parallelogram height
+        var PO = PH / Math.tan(45 * Math.PI / 180); // parallelogram offset
+
+        // Match the trainer's theme
+        var savedTheme = localStorage.getItem('algTrainerTheme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+        if (isDark) document.documentElement.setAttribute('data-bs-theme', 'dark');
+
+        function colors() {
+            return isDark
+                ? { visible: '#5b9bd5', masked: '#2a2a2a', stroke: '#888888', label: '#cccccc' }
+                : { visible: '#89c4f4', masked: '#888888', stroke: '#333333', label: '#333333' };
+        }
+
+        var FACE_START = { U: 0, R: 9, F: 18, D: 27, L: 36, B: 45 };
+        var CENTERS = { 4: 'U', 13: 'R', 22: 'F', 31: 'D', 40: 'L', 49: 'B' };
+        var STORAGE_KEY = 'maskBuilderPresets';
+
+        var PIECES = [
+            [0, 47, 36], [2, 45, 11], [6, 18, 38], [8, 20, 9],
+            [27, 24, 44], [29, 26, 15], [35, 51, 17], [33, 53, 42],
+            [7, 19], [5, 10], [1, 46], [3, 37],
+            [28, 25], [32, 16], [34, 52], [30, 43],
+            [21, 41], [23, 12], [50, 39], [48, 14],
+            [4], [13], [22], [31], [40], [49]
+        ];
+        var STICKER_TO_PIECE = {};
+        for (var p = 0; p < PIECES.length; p++)
+            for (var s = 0; s < PIECES[p].length; s++)
+                STICKER_TO_PIECE[PIECES[p][s]] = PIECES[p];
+
+        var canvas = document.getElementById('maskCanvas');
+        canvas.width = CANVAS_W;
+        canvas.height = CANVAS_H;
+        var ctx = canvas.getContext('2d');
+
+        var state = [];
+        for (var i = 0; i < 54; i++) state.push(true);
+        var mode = 'piece';
+
+        // Each sticker: { points: [x1,y1,...,x8], face: string, gi: number }
+        var stickers = [];
+
+        function buildStickers() {
+            stickers = [];
+
+            // U face (parallelograms)
+            for (var row = 0; row < 3; row++) {
+                for (var col = 0; col < 3; col++) {
+                    var tlx = MARGIN + 3 * STICKER_SIZE + 2 * PO;
+                    var tly = MARGIN + PH;
+                    var x = tlx - row * PO + col * STICKER_SIZE;
+                    var y = tly + row * PH;
+                    stickers.push({ points: [x, y, x + STICKER_SIZE, y, x + STICKER_SIZE + PO, y - PH, x + PO, y - PH], face: 'U', gi: row * 3 + col });
+                }
+            }
+
+            // R face (parallelograms)
+            for (var row = 0; row < 3; row++) {
+                for (var col = 0; col < 3; col++) {
+                    var tlx = MARGIN + 6 * STICKER_SIZE;
+                    var tly = MARGIN + 3 * PH;
+                    var x = tlx + col * PH;
+                    var y = tly + row * STICKER_SIZE - col * PO;
+                    stickers.push({ points: [x, y, x + PH, y - PO, x + PH, y + STICKER_SIZE - PO, x, y + STICKER_SIZE], face: 'R', gi: 9 + row * 3 + col });
+                }
+            }
+
+            // F, D, L, B (squares)
+            addSquareFace(MARGIN + 3 * STICKER_SIZE, MARGIN + 3 * PH, 'F', 18);
+            addSquareFace(MARGIN + 3 * STICKER_SIZE, MARGIN + 3 * PH + 3 * STICKER_SIZE, 'D', 27);
+            addSquareFace(MARGIN, MARGIN + 3 * PH, 'L', 36);
+            addSquareFace(MARGIN + 6 * STICKER_SIZE + 3 * PH, MARGIN + 3 * PH - 3 * PO, 'B', 45);
+        }
+
+        function addSquareFace(tlx, tly, face, startIdx) {
+            for (var row = 0; row < 3; row++) {
+                for (var col = 0; col < 3; col++) {
+                    var x = tlx + col * STICKER_SIZE;
+                    var y = tly + row * STICKER_SIZE;
+                    stickers.push({ points: [x, y, x + STICKER_SIZE, y, x + STICKER_SIZE, y + STICKER_SIZE, x, y + STICKER_SIZE], face: face, gi: startIdx + row * 3 + col });
+                }
+            }
+        }
+
+        function draw() {
+            var c = colors();
+            ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+            for (var i = 0; i < stickers.length; i++) {
+                var st = stickers[i];
+                var pts = st.points;
+                ctx.beginPath();
+                ctx.moveTo(pts[0], pts[1]);
+                for (var j = 2; j < pts.length; j += 2) ctx.lineTo(pts[j], pts[j + 1]);
+                ctx.closePath();
+                ctx.fillStyle = state[st.gi] ? c.visible : c.masked;
+                ctx.globalAlpha = state[st.gi] ? 1.0 : 0.4;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                ctx.strokeStyle = c.stroke;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                if (CENTERS[st.gi]) {
+                    var cx = 0, cy = 0;
+                    for (var j = 0; j < pts.length; j += 2) { cx += pts[j]; cy += pts[j + 1]; }
+                    cx /= pts.length / 2;
+                    cy /= pts.length / 2;
+                    ctx.font = 'bold ' + Math.round(STICKER_SIZE * 0.45) + 'px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = c.label;
+                    ctx.fillText(CENTERS[st.gi], cx, cy);
+                }
+            }
+        }
+
+        function pointInPolygon(pts, mx, my) {
+            var inside = false;
+            var n = pts.length / 2;
+            for (var i = 0, j = n - 1; i < n; j = i++) {
+                var xi = pts[2 * i], yi = pts[2 * i + 1];
+                var xj = pts[2 * j], yj = pts[2 * j + 1];
+                if (((yi > my) !== (yj > my)) && (mx < (xj - xi) * (my - yi) / (yj - yi) + xi))
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        function getMousePos(e) {
+            var rect = canvas.getBoundingClientRect();
+            return { x: (e.clientX - rect.left) * (canvas.width / rect.width), y: (e.clientY - rect.top) * (canvas.height / rect.height) };
+        }
+
+        canvas.addEventListener('click', function(e) {
+            var pos = getMousePos(e);
+            for (var i = 0; i < stickers.length; i++) {
+                if (pointInPolygon(stickers[i].points, pos.x, pos.y)) {
+                    handleClick(stickers[i].gi);
+                    break;
+                }
+            }
+        });
+
+        function handleClick(gi) {
+            if (mode === 'piece') {
+                var piece = STICKER_TO_PIECE[gi];
+                if (piece) {
+                    var newVal = !state[gi];
+                    for (var k = 0; k < piece.length; k++) state[piece[k]] = newVal;
+                }
+            } else {
+                state[gi] = !state[gi];
+            }
+            draw();
+            syncOutput();
+        }
+
+        function getMask() {
+            var str = '';
+            for (var j = 0; j < 54; j++) str += state[j] ? '.' : 'x';
+            return str;
+        }
+
+        function setMask(mask54) {
+            if (!mask54 || mask54.length !== 54) {
+                for (var j = 0; j < 54; j++) state[j] = true;
+            } else {
+                for (var j = 0; j < 54; j++) state[j] = mask54[j] !== 'x';
+            }
+            draw();
+            syncOutput();
+        }
+
+        function syncOutput() {
+            document.getElementById('maskString').value = getMask();
+        }
+
+        buildStickers();
+        draw();
+        syncOutput();
+
+        // Mode toggle
+        document.getElementById('modePiece').addEventListener('click', function() {
+            mode = 'piece'; this.classList.add('active'); document.getElementById('modeSticker').classList.remove('active');
+        });
+        document.getElementById('modeSticker').addEventListener('click', function() {
+            mode = 'sticker'; this.classList.add('active'); document.getElementById('modePiece').classList.remove('active');
+        });
+
+        document.getElementById('showAllBtn').addEventListener('click', function() {
+            for (var j = 0; j < 54; j++) if (!CENTERS[j]) state[j] = true;
+            draw(); syncOutput();
+        });
+        document.getElementById('maskAllBtn').addEventListener('click', function() {
+            for (var j = 0; j < 54; j++) if (!CENTERS[j]) state[j] = false;
+            draw(); syncOutput();
+        });
+        document.getElementById('invertBtn').addEventListener('click', function() {
+            for (var j = 0; j < 54; j++) state[j] = !state[j];
+            draw(); syncOutput();
+        });
+
+        document.getElementById('maskString').addEventListener('input', function() {
+            if (this.value.length === 54) setMask(this.value);
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            navigator.clipboard.writeText(document.getElementById('maskString').value).then(function() {
+                var btn = document.getElementById('copyBtn');
+                btn.innerHTML = '<i class="bi bi-check"></i>';
+                setTimeout(function() { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+            });
+        });
+
+        // ===== Presets =====
+        function loadPresets() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { return []; } }
+        function savePresets(presets) { localStorage.setItem(STORAGE_KEY, JSON.stringify(presets)); }
+
+        function renderPresets() {
+            var presets = loadPresets();
+            var list = document.getElementById('presetsList');
+            list.innerHTML = '';
+            if (presets.length === 0) { list.innerHTML = '<p class="text-muted small">No presets saved yet.</p>'; return; }
+            presets.forEach(function(preset, idx) {
+                var div = document.createElement('div');
+                div.className = 'preset-item border rounded p-2 mb-2 d-flex justify-content-between align-items-start';
+                var info = document.createElement('div');
+                info.style.cssText = 'cursor:pointer; flex:1;';
+                info.innerHTML = '<strong class="small">' + escapeHtml(preset.name) + '</strong><br><code>' + escapeHtml(preset.mask) + '</code>';
+                info.addEventListener('click', function() {
+                    setMask(preset.mask);
+                    document.querySelectorAll('.preset-item').forEach(function(el) { el.classList.remove('active'); });
+                    div.classList.add('active');
+                });
+                var delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-outline-danger btn-sm ms-2';
+                delBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                delBtn.addEventListener('click', function() { var p = loadPresets(); p.splice(idx, 1); savePresets(p); renderPresets(); });
+                div.appendChild(info); div.appendChild(delBtn); list.appendChild(div);
+            });
+        }
+
+        document.getElementById('savePresetBtn').addEventListener('click', function() {
+            var name = document.getElementById('presetName').value.trim();
+            if (!name) { alert('Enter a preset name.'); return; }
+            var presets = loadPresets();
+            presets.push({ name: name, mask: getMask() });
+            savePresets(presets);
+            document.getElementById('presetName').value = '';
+            renderPresets();
+        });
+
+        document.getElementById('exportPresetsBtn').addEventListener('click', function() {
+            var blob = new Blob([JSON.stringify(loadPresets(), null, 2)], { type: 'application/json' });
+            var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mask-presets.json'; a.click();
+        });
+
+        document.getElementById('importPresetsBtn').addEventListener('click', function() { document.getElementById('importFile').click(); });
+        document.getElementById('importFile').addEventListener('change', function() {
+            var file = this.files[0]; if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var imported = JSON.parse(e.target.result);
+                    if (!Array.isArray(imported)) throw new Error();
+                    var presets = loadPresets();
+                    imported.forEach(function(p) { if (p.name && p.mask && p.mask.length === 54) presets.push(p); });
+                    savePresets(presets); renderPresets();
+                    alert('Imported ' + imported.length + ' preset(s).');
+                } catch (err) { alert('Invalid preset file.'); }
+            };
+            reader.readAsText(file); this.value = '';
+        });
+
+        function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+        renderPresets();
+    })();
+    </script>
+</body>
+</html>
